@@ -28,61 +28,152 @@
       </app-priority-score-algorithms>
 
       <app-collapsible-section title="Mutual aid">
-        <div class="readonly-grid">
-          <div class="readonly-item">
-            <span class="readonly-label">In need of aid</span>
-            <span class="readonly-value">{{ profile.inNeedOfAid ? 'Yes' : 'No' }}</span>
-            <span class="hint-text">
+        <ng-container *ngIf="profile.canProposeAidStatEdits; else mutualAidReadonly">
+          <p class="hint-text" *ngIf="canDirectAidStatEdits; else preferenceProposeHint">
+            Edit mutual-aid preferences below, then save. Placeholder updates apply immediately — no crew vote.
+          </p>
+          <ng-template #preferenceProposeHint>
+            <p class="hint-text">
+              Edit mutual-aid preferences below, then propose the changes for crew approval.
+            </p>
+          </ng-template>
+          <div class="aid-stat-form">
+            <label class="aid-stat-checkbox">
+              <input type="checkbox" [(ngModel)]="preferenceDraft.inNeedOfAid">
+              <span>In need of aid</span>
+            </label>
+            <p class="hint-text">
               When on, this crewmate can receive survival-threshold and concentrated cycle aid.
-            </span>
-          </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Needs survival aid</span>
-            <span class="readonly-value">{{ profile.needsSurvivalAid ? 'Yes' : 'No' }}</span>
-            <span class="hint-text">
+            </p>
+            <label class="aid-stat-checkbox">
+              <input type="checkbox" [(ngModel)]="preferenceDraft.needsSurvivalAid">
+              <span>Needs survival aid</span>
+            </label>
+            <p class="hint-text">
               When on, they can receive a small monthly survival-threshold gift based on crew giving capacity.
-            </span>
+            </p>
+
+            <label class="aid-stat-field">
+              <span>Emergency level (0–3)</span>
+              <input
+                type="number"
+                min="0"
+                max="3"
+                step="1"
+                [(ngModel)]="preferenceDraft.emergencyLevel"
+                class="form-input">
+            </label>
+            <p class="hint-text">{{ emergencyLevelHint }}</p>
+
+            <label class="aid-stat-field">
+              <span>Number of people represented</span>
+              <input
+                type="number"
+                min="1"
+                max="99"
+                step="1"
+                [(ngModel)]="preferenceDraft.peopleRepresentedCount"
+                class="form-input">
+            </label>
+
+            <label class="aid-stat-field">
+              <span>Level of disability (0–3)</span>
+              <input
+                type="number"
+                min="0"
+                max="3"
+                step="1"
+                [(ngModel)]="preferenceDraft.disabilityLevel"
+                class="form-input">
+            </label>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label>Payment platforms</label>
-          <p *ngIf="profile.paymentPlatforms.length === 0" class="empty-text">No payment platforms listed.</p>
-          <ul class="platform-list" *ngIf="profile.paymentPlatforms.length > 0">
-            <li *ngFor="let platform of profile.paymentPlatforms">
-              <span class="platform-name">{{ platform.platformName }}</span>
-              <span class="platform-handle">{{ platform.handle }}</span>
-              <app-copy-text-button
-                *ngIf="platform.handle"
-                [value]="platform.handle"
-                label="payment handle">
-              </app-copy-text-button>
-              <span class="preferred-badge" *ngIf="platform.isPreferred">Preferred</span>
-            </li>
-          </ul>
-        </div>
+          <div class="form-group">
+            <label>Payment platforms</label>
+            <app-payment-platform-editor
+              [platforms]="preferencePaymentPlatforms"
+              [platformOptions]="platformOptions"
+              [showPreferred]="true"
+              (add)="addPreferencePaymentPlatform()"
+              (remove)="removePreferencePaymentPlatform($event)"
+              (preferredChange)="setPreferredPreferencePlatform($event)">
+            </app-payment-platform-editor>
+          </div>
 
-        <div class="readonly-grid">
           <div class="readonly-item">
             <span class="readonly-label">Estimated monthly contribution</span>
             <span class="readonly-value">
               {{ profile.estimatedMonthlyContribution != null ? ('$' + profile.estimatedMonthlyContribution) : '—' }}
             </span>
-            <span class="hint-text">Self-estimate used for months before joining the season.</span>
+            <span class="hint-text">Self-estimate used for months before joining the season. Edit under Aid history adjustments.</span>
           </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Emergency level</span>
-            <span class="readonly-value">{{ profile.emergencyLevel }}</span>
+
+          <button
+            type="button"
+            class="export-btn"
+            [disabled]="actionLoading"
+            (click)="onProposePreferenceChanges()">
+            {{ canDirectAidStatEdits ? 'Save mutual-aid preferences' : 'Propose mutual-aid preference changes' }}
+          </button>
+        </ng-container>
+
+        <ng-template #mutualAidReadonly>
+          <div class="readonly-grid">
+            <div class="readonly-item">
+              <span class="readonly-label">In need of aid</span>
+              <span class="readonly-value">{{ profile.inNeedOfAid ? 'Yes' : 'No' }}</span>
+              <span class="hint-text">
+                When on, this crewmate can receive survival-threshold and concentrated cycle aid.
+              </span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Needs survival aid</span>
+              <span class="readonly-value">{{ profile.needsSurvivalAid ? 'Yes' : 'No' }}</span>
+              <span class="hint-text">
+                When on, they can receive a small monthly survival-threshold gift based on crew giving capacity.
+              </span>
+            </div>
           </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Number of people represented</span>
-            <span class="readonly-value">{{ profile.peopleRepresentedCount }}</span>
+
+          <div class="form-group">
+            <label>Payment platforms</label>
+            <p *ngIf="profile.paymentPlatforms.length === 0" class="empty-text">No payment platforms listed.</p>
+            <ul class="platform-list" *ngIf="profile.paymentPlatforms.length > 0">
+              <li *ngFor="let platform of profile.paymentPlatforms">
+                <span class="platform-name">{{ platform.platformName }}</span>
+                <span class="platform-handle">{{ platform.handle }}</span>
+                <app-copy-text-button
+                  *ngIf="platform.handle"
+                  [value]="platform.handle"
+                  label="payment handle">
+                </app-copy-text-button>
+                <span class="preferred-badge" *ngIf="platform.isPreferred">Preferred</span>
+              </li>
+            </ul>
           </div>
-          <div class="readonly-item">
-            <span class="readonly-label">Level of disability</span>
-            <span class="readonly-value">{{ profile.disabilityLevel }}</span>
+
+          <div class="readonly-grid">
+            <div class="readonly-item">
+              <span class="readonly-label">Estimated monthly contribution</span>
+              <span class="readonly-value">
+                {{ profile.estimatedMonthlyContribution != null ? ('$' + profile.estimatedMonthlyContribution) : '—' }}
+              </span>
+              <span class="hint-text">Self-estimate used for months before joining the season.</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Emergency level</span>
+              <span class="readonly-value">{{ profile.emergencyLevel }}</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Number of people represented</span>
+              <span class="readonly-value">{{ profile.peopleRepresentedCount }}</span>
+            </div>
+            <div class="readonly-item">
+              <span class="readonly-label">Level of disability</span>
+              <span class="readonly-value">{{ profile.disabilityLevel }}</span>
+            </div>
           </div>
-        </div>
+        </ng-template>
 
         <div class="form-group">
           <label>Targeted minority groups</label>
@@ -94,7 +185,11 @@
 
         <div class="aid-active-cards" *ngIf="showCycleCard || activeThresholdRows.length > 0 || profile.canProposeAidStatEdits">
           <h3 class="aid-stat-subtitle">Active reception</h3>
-          <p class="hint-text" *ngIf="profile.canProposeAidStatEdits">
+          <p class="hint-text" *ngIf="profile.canProposeAidStatEdits && canDirectAidStatEdits">
+            Edit amounts, then save. Placeholder updates apply immediately — no crew vote.
+            Amount to be received is what is still owed; amount received is what already counts toward the target.
+          </p>
+          <p class="hint-text" *ngIf="profile.canProposeAidStatEdits && !canDirectAidStatEdits">
             Edit amounts, then propose an aid statistic update for crew approval.
             Amount to be received is what is still owed; amount received is what already counts toward the target.
           </p>
@@ -145,8 +240,9 @@
             <div class="aid-card-title-row">
               <span class="aid-card-title">Survival threshold</span>
               <span class="aid-card-badge" *ngIf="row.monthLabel">{{ row.monthLabel }}</span>
-              <span class="aid-card-badge" *ngIf="(row.amountRemaining || 0) > 0">Active</span>
-              <span class="aid-card-badge muted" *ngIf="(row.amountRemaining || 0) <= 0">Satisfied</span>
+              <span class="aid-card-badge" *ngIf="thresholdOpenNeed(row) > 0">Active</span>
+              <span class="aid-card-badge" *ngIf="thresholdHasPending(row)">Pending gifts</span>
+              <span class="aid-card-badge muted" *ngIf="thresholdOpenNeed(row) <= 0 && !thresholdHasPending(row)">Satisfied</span>
             </div>
 
             <ng-container *ngIf="profile.canProposeAidStatEdits">
@@ -181,6 +277,10 @@
                   [ngModel]="row.amountReceived"
                   (ngModelChange)="onThresholdReceivedChange(row, $event)">
               </label>
+              <p class="hint-text" *ngIf="thresholdHasPending(row)">
+                ${{ row.pendingAmount || 0 }} in pending gifts is already recorded against this threshold
+                (still owed after pending: ${{ thresholdOpenNeed(row) }}). Remaining above is verified-only until gifts are confirmed.
+              </p>
               <label class="aid-stat-field">
                 <span>Reception order (1 = first among all thresholds)</span>
                 <input type="number" min="1" step="1" [(ngModel)]="row.order" class="form-input">
@@ -198,11 +298,15 @@
               </div>
               <div class="readonly-item">
                 <span class="readonly-label">Amount to be received</span>
-                <span class="readonly-value">${{ row.amountRemaining || 0 }}</span>
+                <span class="readonly-value">${{ thresholdOpenNeed(row) }}</span>
               </div>
               <div class="readonly-item">
                 <span class="readonly-label">Amount received</span>
                 <span class="readonly-value">${{ row.amountReceived || 0 }}</span>
+              </div>
+              <div class="readonly-item" *ngIf="thresholdHasPending(row)">
+                <span class="readonly-label">Pending gifts</span>
+                <span class="readonly-value">${{ row.pendingAmount || 0 }}</span>
               </div>
             </div>
           </div>
@@ -224,7 +328,7 @@
               class="export-btn"
               [disabled]="actionLoading"
               (click)="onProposeAidStatChanges()">
-              Propose aid statistic changes
+              {{ canDirectAidStatEdits ? 'Save aid statistic changes' : 'Propose aid statistic changes' }}
             </button>
           </ng-container>
         </div>
@@ -291,14 +395,42 @@
         </div>
       </app-collapsible-section>
 
-      <section class="section claim-section" *ngIf="profile.canClaimIdentity">
+      <section class="section claim-section" *ngIf="showIdentitySection">
         <h2>Is this you?</h2>
-        <p class="hint-text">
-          If you are {{ profile.username }}, submit a proposal for the crew to link this non-member profile to your account.
-        </p>
-        <button type="button" class="claim-btn" [disabled]="actionLoading" (click)="onClaimIdentity()">
-          This is me
-        </button>
+        <ng-container *ngIf="profile.canClaimIdentity">
+          <p class="hint-text">
+            If you are {{ profile.username }}, submit a proposal for the crew to link this non-member profile to your account.
+          </p>
+          <button type="button" class="claim-btn" [disabled]="actionLoading" (click)="onClaimIdentity()">
+            This is me
+          </button>
+        </ng-container>
+
+        <div class="merge-block" *ngIf="canMergePlaceholder">
+          <p class="hint-text">
+            Organizers and accountants can merge this placeholder into a real crewmate immediately.
+            Reception history and payment handles they are missing are moved over; mutual-aid defaults fill only where the real account still has system defaults.
+          </p>
+          <label class="aid-stat-field">
+            <span>Merge with</span>
+            <select class="form-input" [(ngModel)]="mergeTargetUserId" [disabled]="actionLoading || mergeTargets.length === 0">
+              <option [ngValue]="null">Select a crewmate…</option>
+              <option *ngFor="let target of mergeTargets" [ngValue]="target.userId">
+                {{ target.username }}
+              </option>
+            </select>
+          </label>
+          <p class="hint-text" *ngIf="mergeTargets.length === 0">
+            No active non-placeholder crewmates available to merge into.
+          </p>
+          <button
+            type="button"
+            class="claim-btn"
+            [disabled]="actionLoading || !mergeTargetUserId"
+            (click)="onMergePlaceholder()">
+            Merge placeholder
+          </button>
+        </div>
       </section>
 
       <section class="section">
@@ -413,10 +545,16 @@
 
       <section class="section aid-stat-section" *ngIf="profile.canProposeAidStatEdits">
         <h2>Aid history adjustments</h2>
-        <p class="hint-text">
-          Propose updates for crews joining mid-season with existing contribution and reception history,
-          or save pre-season drafts that apply when the season starts. Changes require crew approval.
+        <p class="hint-text" *ngIf="canDirectAidStatEdits; else aidHistoryProposeHint">
+          Update contribution and reception history for this placeholder, or save a pre-season draft.
+          Changes apply immediately — no crew vote.
         </p>
+        <ng-template #aidHistoryProposeHint>
+          <p class="hint-text">
+            Propose updates for crews joining mid-season with existing contribution and reception history,
+            or save pre-season drafts that apply when the season starts. Changes require crew approval.
+          </p>
+        </ng-template>
         <p class="hint-text" *ngIf="profile.hasAidStatDraft && !profile.seasonStarted">
           A pre-season aid-stat draft is saved for this crewmate and will apply at season start.
         </p>
@@ -458,7 +596,7 @@
           class="export-btn"
           [disabled]="actionLoading"
           (click)="onProposeAidStatChanges()">
-          Propose aid statistic changes
+          {{ canDirectAidStatEdits ? 'Save aid statistic changes' : 'Propose aid statistic changes' }}
         </button>
       </section>
 

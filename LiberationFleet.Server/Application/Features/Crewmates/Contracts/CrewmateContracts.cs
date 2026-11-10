@@ -148,6 +148,11 @@ public class ProposeCrewmateAidStatChangeRequest
     public List<ProposeCrewmateAidStatChangeItemDto> Changes { get; set; } = [];
 }
 
+public class MergePlaceholderIntoUserRequest
+{
+    public int TargetUserId { get; set; }
+}
+
 public class CrewmateElectedRoleDto
 {
     public string Role { get; set; } = string.Empty;

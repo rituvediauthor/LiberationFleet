@@ -909,8 +909,34 @@ public partial class MutualAidService(
                 cancellationToken);
         }
 
+        // Survival-threshold gifts burn MonthlySurvivalThreshold.ReceivedAmount even when the
+        // recipient has no incomplete season cycle (cycle completed / survival-only). Previously
+        // a null cycle returned early, left ReceptionApplied=true, and amount remaining stuck.
+        var isSurvivalGift = gift.IsSurvivalThreshold && AreSurvivalThresholdsEnabled(crew);
+        if (isSurvivalGift)
+        {
+            await ApplyToThresholdForUserAsync(gift, recipientUserId, cancellationToken);
+        }
+
         if (cycle is null)
         {
+            if (isSurvivalGift)
+            {
+                // Credit a primary cycle's survival totals when one exists (even if completed).
+                var primary = await mutualAidRepository.GetPrimarySeasonCycleAsync(
+                    gift.CrewId,
+                    recipientUserId,
+                    crew.CurrentSeasonStartDate.Value,
+                    cancellationToken);
+                if (primary is not null)
+                {
+                    primary.TotalReceptionAmount += gift.Amount;
+                    primary.SurvivalThresholdReceived += gift.Amount;
+                }
+
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+
             return;
         }
 
@@ -930,10 +956,10 @@ public partial class MutualAidService(
 
         var cycleReceivedBefore = cycle.CycleReceived;
 
-        if (gift.IsSurvivalThreshold && crew.AllowSurvivalThresholds)
+        if (isSurvivalGift)
         {
             cycle.SurvivalThresholdReceived += gift.Amount;
-            await ApplyToThresholdForUserAsync(gift, recipientUserId, cancellationToken);
+            // Threshold burn already applied above.
         }
         else if (cycle.CycleCompleted)
         {
@@ -2924,24 +2950,52 @@ public async Task<bool> IsFinancialMemberAsync(
                 }
             }
 
+            // Reopen inconsistent satisfied current-month rows (marked satisfied while still owed).
+            foreach (var threshold in existingForMonth.Where(t =>
+                         !removedThresholds.Contains(t)
+                         && eligibleUserIds.Contains(t.UserId)
+                         && t.Satisfied
+                         && t.ReceivedAmount < t.ThresholdAmount))
+            {
+                threshold.Satisfied = false;
+                changed = true;
+                if (!openThresholdsForCap.Contains(threshold))
+                {
+                    openThresholdsForCap.Add(threshold);
+                }
+            }
+
+            // Pending survival gifts already cover some open need in reception order. Those rows
+            // should not consume the 2-active cap and block the new calendar month.
+            var pendingCoveredThresholdIds = await GetPendingFullyCoveredSurvivalThresholdIdsAsync(
+                crew,
+                openThresholdsForCap.Where(t => !t.Satisfied).ToList(),
+                cancellationToken);
+
             var activeCounts = openThresholdsForCap
-                .Where(threshold => !threshold.Satisfied)
+                .Where(threshold => !threshold.Satisfied
+                    && !pendingCoveredThresholdIds.Contains(threshold.Id))
                 .GroupBy(t => t.UserId)
                 .ToDictionary(g => g.Key, g => g.Count());
 
-            // Unique (CrewId, UserId, Year, Month): any existing row for this calendar month
-            // blocks another insert (including satisfied ones).
-            var usersWithMonthThreshold = existingForMonth
-                .Where(threshold => !removedThresholds.Contains(threshold))
+            // Unique (CrewId, UserId, Year, Month): any existing unsatisfied row for this month
+            // blocks another insert. A fully satisfied same-month row is reused below when the
+            // recipient still has room under the active cap (cannot insert a duplicate month).
+            var usersWithOpenMonthThreshold = existingForMonth
+                .Where(threshold => !removedThresholds.Contains(threshold) && !threshold.Satisfied)
                 .Select(threshold => threshold.UserId)
                 .ToHashSet();
+            var satisfiedMonthByUser = existingForMonth
+                .Where(threshold => !removedThresholds.Contains(threshold) && threshold.Satisfied)
+                .GroupBy(threshold => threshold.UserId)
+                .ToDictionary(g => g.Key, g => g.First());
 
             // Append only — never insert ahead of / between existing open thresholds.
             // Financial member vs non-member does not matter: NeedsSurvivalAid + in season.
             var position = await mutualAidRepository.GetNextThresholdOrderPositionAsync(crew.Id, cancellationToken);
             foreach (var member in eligibleRecipients)
             {
-                if (usersWithMonthThreshold.Contains(member.UserId))
+                if (usersWithOpenMonthThreshold.Contains(member.UserId))
                 {
                     continue;
                 }
@@ -2949,6 +3003,28 @@ public async Task<bool> IsFinancialMemberAsync(
                 if (activeCounts.GetValueOrDefault(member.UserId) >= MaxActiveSurvivalThresholdsPerUser)
                 {
                     // Already has two active survival thresholds — do not generate a third.
+                    continue;
+                }
+
+                if (satisfiedMonthByUser.TryGetValue(member.UserId, out var satisfiedMonthRow))
+                {
+                    // Unique month index: reopen a fully paid same-month row only when formula need
+                    // grew above what was already received; otherwise leave it satisfied.
+                    if (satisfiedMonthRow.ReceivedAmount >= survivalAmount)
+                    {
+                        continue;
+                    }
+
+                    if (!satisfiedMonthRow.IsCustomAmount)
+                    {
+                        satisfiedMonthRow.ThresholdAmount = survivalAmount;
+                    }
+
+                    satisfiedMonthRow.Satisfied = false;
+                    usersWithOpenMonthThreshold.Add(member.UserId);
+                    activeCounts[member.UserId] = activeCounts.GetValueOrDefault(member.UserId) + 1;
+                    created = true;
+                    changed = true;
                     continue;
                 }
 
@@ -2963,7 +3039,7 @@ public async Task<bool> IsFinancialMemberAsync(
                     ReceptionOrderPosition = position++,
                     Satisfied = false
                 }, cancellationToken);
-                usersWithMonthThreshold.Add(member.UserId);
+                usersWithOpenMonthThreshold.Add(member.UserId);
                 activeCounts[member.UserId] = activeCounts.GetValueOrDefault(member.UserId) + 1;
                 created = true;
                 changed = true;
@@ -2996,6 +3072,74 @@ public async Task<bool> IsFinancialMemberAsync(
 
     private static bool IsSurvivalThresholdEligible(CrewMembership membership) =>
         membership.User.NeedsSurvivalAid;
+
+    /// <summary>
+    /// Threshold ids whose remaining verified need is fully covered by pending survival gifts.
+    /// Used so monthly generation does not treat those rows as consuming the 2-active cap.
+    /// </summary>
+    private async Task<HashSet<int>> GetPendingFullyCoveredSurvivalThresholdIdsAsync(
+        Crew crew,
+        IReadOnlyList<MonthlySurvivalThreshold> openThresholds,
+        CancellationToken cancellationToken)
+    {
+        if (openThresholds.Count == 0 || !crew.CurrentSeasonStartDate.HasValue)
+        {
+            return [];
+        }
+
+        var pendingCredits = await giftRepository.GetPendingReceptionCreditsAsync(
+            crew.Id,
+            crew.CurrentSeasonStartDate,
+            cancellationToken);
+        var pendingByThresholdId = new Dictionary<int, decimal>();
+        var pendingUnscopedByUserId = new Dictionary<int, decimal>();
+        foreach (var credit in pendingCredits.Where(c => c.IsSurvivalThreshold))
+        {
+            if (credit.MonthlySurvivalThresholdId.HasValue)
+            {
+                pendingByThresholdId[credit.MonthlySurvivalThresholdId.Value] =
+                    pendingByThresholdId.GetValueOrDefault(credit.MonthlySurvivalThresholdId.Value)
+                    + credit.Amount;
+            }
+            else
+            {
+                pendingUnscopedByUserId[credit.RecipientUserId] =
+                    pendingUnscopedByUserId.GetValueOrDefault(credit.RecipientUserId) + credit.Amount;
+            }
+        }
+
+        var covered = new HashSet<int>();
+        var unscopedRemaining = new Dictionary<int, decimal>(pendingUnscopedByUserId);
+        foreach (var threshold in openThresholds
+                     .OrderBy(t => t.ReceptionOrderPosition)
+                     .ThenBy(t => t.Year)
+                     .ThenBy(t => t.Month)
+                     .ThenBy(t => t.Id))
+        {
+            var verifiedNeed = Math.Max(0m, threshold.ThresholdAmount - threshold.ReceivedAmount);
+            if (verifiedNeed <= 0m)
+            {
+                covered.Add(threshold.Id);
+                continue;
+            }
+
+            var pending = pendingByThresholdId.GetValueOrDefault(threshold.Id);
+            var unscoped = unscopedRemaining.GetValueOrDefault(threshold.UserId);
+            if (unscoped > 0m && verifiedNeed > pending)
+            {
+                var appliedUnscoped = Math.Min(unscoped, verifiedNeed - pending);
+                pending += appliedUnscoped;
+                unscopedRemaining[threshold.UserId] = unscoped - appliedUnscoped;
+            }
+
+            if (pending >= verifiedNeed)
+            {
+                covered.Add(threshold.Id);
+            }
+        }
+
+        return covered;
+    }
 
     private Task ApplyToThresholdAsync(Gift gift, CancellationToken cancellationToken) =>
         ApplyToThresholdForUserAsync(gift, gift.RecipientUserId, cancellationToken);

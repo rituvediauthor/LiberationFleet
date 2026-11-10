@@ -366,6 +366,123 @@ public class CrewmateAidStatProposalServiceTests
     }
 
     [Fact]
+    public async Task TryApply_AppliesMutualAidPreferenceFields()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var service = CreateService(fixture);
+        var platformsJson = JsonSerializer.Serialize(
+            new[]
+            {
+                new
+                {
+                    platformId = fixture.Platforms["Venmo"].Id,
+                    platformName = "Venmo",
+                    handle = "@bob-venmo",
+                    isPreferred = true
+                }
+            },
+            JsonOptions);
+
+        var proposal = await CreateApprovedProposalAsync(
+            fixture,
+            fixture.Bob.Id,
+            [
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.InNeedOfAid, NewValue = "false" },
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.NeedsSurvivalAid, NewValue = "true" },
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.EmergencyLevel, NewValue = "2" },
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.DisabilityLevel, NewValue = "1" },
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.PeopleRepresentedCount, NewValue = "3" },
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.PaymentPlatforms, NewValue = platformsJson }
+            ]);
+
+        await service.TryApplyApprovedProposalAsync(proposal, CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        var bob = await fixture.Context.Users
+            .Include(u => u.PaymentPlatforms)
+            .SingleAsync(u => u.Id == fixture.Bob.Id);
+        bob.InNeedOfAid.Should().BeFalse();
+        bob.NeedsSurvivalAid.Should().BeTrue();
+        bob.EmergencyLevel.Should().Be(2);
+        bob.DisabilityLevel.Should().Be(1);
+        bob.PeopleRepresentedCount.Should().Be(3);
+        bob.PaymentPlatforms.Should().ContainSingle(p =>
+            p.CrewPaymentPlatformId == fixture.Platforms["Venmo"].Id
+            && p.Handle == "@bob-venmo"
+            && p.IsPreferred);
+
+        var change = await fixture.Context.ProposalCrewmateAidStatChanges
+            .SingleAsync(c => c.ProposalId == proposal.Id);
+        change.IsApplied.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateAsync_WhenTargetIsPlaceholder_AppliesImmediatelyWithoutProposal()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
+        var aliceMembership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Alice.Id && m.CrewId == fixture.Crew.Id);
+        aliceMembership.IsOrganizer = true;
+
+        var placeholder = new User
+        {
+            Username = "ph_aid_direct",
+            DisplayName = "Pat Direct",
+            Email = "ph-aid-direct@example.com",
+            PasswordHash = "hash",
+            IsActive = true,
+            IsUnclaimedPlaceholder = true,
+            InNeedOfAid = true,
+            NeedsSurvivalAid = false,
+            EmergencyLevel = 0,
+            DisabilityLevel = 0,
+            PeopleRepresentedCount = 1
+        };
+        fixture.Context.Users.Add(placeholder);
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.CrewMemberships.Add(new CrewMembership
+        {
+            UserId = placeholder.Id,
+            CrewId = fixture.Crew.Id,
+            JoinedAt = DateTime.UtcNow,
+            IsPlaceholderMember = true,
+            IsSeasonReady = true,
+            IsHonoraryMember = true,
+            IsInSeason = true
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var service = CreateService(fixture);
+        var result = await service.CreateAsync(
+            fixture.Crew.Id,
+            fixture.Alice.Id,
+            placeholder.Id,
+            [
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.NeedsSurvivalAid, NewValue = "true" },
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.EmergencyLevel, NewValue = "2" },
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.LifetimeContributions, NewValue = "150" }
+            ],
+            CancellationToken.None);
+
+        result.Success.Should().BeTrue(result.Message);
+        result.ProposalId.Should().Be(0);
+        result.Message.Should().Contain("applied");
+
+        (await fixture.Context.Proposals.CountAsync(p =>
+            p.CrewId == fixture.Crew.Id && p.Kind == ProposalKind.CrewmateAidStatChange))
+            .Should().Be(0);
+
+        var reloaded = await fixture.Context.Users.SingleAsync(u => u.Id == placeholder.Id);
+        reloaded.NeedsSurvivalAid.Should().BeTrue();
+        reloaded.EmergencyLevel.Should().Be(2);
+
+        var membership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == placeholder.Id && m.CrewId == fixture.Crew.Id);
+        membership.LifetimeContributionOverride.Should().Be(150m);
+    }
+
+    [Fact]
     public async Task TryApply_WhenLifetimeAndInvalidSeasonAccounting_StillAppliesLifetimeOverride()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(cycleCap: 100m);
@@ -400,6 +517,7 @@ public class CrewmateAidStatProposalServiceTests
             new UserRepository(fixture.Context),
             new MutualAidRepository(fixture.Context),
             new GiftRepository(fixture.Context),
+            new CrewPaymentPlatformRepository(fixture.Context),
             fixture.Service,
             HandlerTestFixture.CreateNotificationService(fixture.Context),
             fixture.Context);

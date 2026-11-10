@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Features.Crewmates.Commands.AddPlacehol
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.AllowCrewmateRejoin;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.ClaimPlaceholderIdentity;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.DemoteCrewRoles;
+using LiberationFleet.Server.Application.Features.Crewmates.Commands.MergePlaceholderIntoUser;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.KickCrewmate;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.KickCrewmateFromSeason;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.ManageFriendship;
@@ -230,6 +231,14 @@ public class CrewmatesController : ControllerBase
     public async Task<IActionResult> ClaimIdentity(int userId)
     {
         var result = await _mediator.Send(new ClaimPlaceholderIdentityCommand(userId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{userId:int}/merge-placeholder")]
+    public async Task<IActionResult> MergePlaceholder(int userId, [FromBody] MergePlaceholderIntoUserRequest body)
+    {
+        body ??= new MergePlaceholderIntoUserRequest();
+        var result = await _mediator.Send(new MergePlaceholderIntoUserCommand(userId, body.TargetUserId));
         return result.Success ? Ok(result) : BadRequest(result);
     }
 

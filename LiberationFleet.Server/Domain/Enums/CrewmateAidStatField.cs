@@ -15,5 +15,15 @@ public enum CrewmateAidStatField
     /// JSON payload (<see cref="Application.Features.Crews.AidSeasonAccountingDto"/>) for cycle lock/order,
     /// survival thresholds, auto-join, and pre-season drafts.
     /// </summary>
-    SeasonAccounting = 9
+    SeasonAccounting = 9,
+    InNeedOfAid = 10,
+    NeedsSurvivalAid = 11,
+    EmergencyLevel = 12,
+    DisabilityLevel = 13,
+    PeopleRepresentedCount = 14,
+    /// <summary>
+    /// JSON array of payment platforms
+    /// (<c>platformId</c>, <c>platformName</c>, <c>handle</c>, <c>isPreferred</c>, optional <c>customPlatformName</c>).
+    /// </summary>
+    PaymentPlatforms = 15
 }

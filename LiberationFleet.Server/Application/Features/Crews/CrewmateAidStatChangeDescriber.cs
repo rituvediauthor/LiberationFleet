@@ -19,24 +19,43 @@ public static class CrewmateAidStatChangeDescriber
         public decimal ReceptionThisYear { get; init; }
         public int PercentBoost { get; init; }
         public AidSeasonAccountingDto? SeasonAccounting { get; init; }
+        public bool InNeedOfAid { get; init; } = true;
+        public bool NeedsSurvivalAid { get; init; }
+        public int EmergencyLevel { get; init; }
+        public int DisabilityLevel { get; init; }
+        public int PeopleRepresentedCount { get; init; } = 1;
+        public string PaymentPlatformsJson { get; init; } = "[]";
     }
 
     public static string BuildTitle(string targetName, IReadOnlyList<CrewmateAidStatChangeItem> changes)
     {
         var hasSeason = changes.Any(c => c.Field == CrewmateAidStatField.SeasonAccounting);
-        var scalars = changes.Where(c => c.Field != CrewmateAidStatField.SeasonAccounting).ToList();
+        var preferenceFields = changes.Where(c => IsPreferenceField(c.Field)).ToList();
+        var moneyScalars = changes
+            .Where(c => c.Field != CrewmateAidStatField.SeasonAccounting && !IsPreferenceField(c.Field))
+            .ToList();
 
-        if (hasSeason && scalars.Count == 0)
+        if (hasSeason && moneyScalars.Count == 0 && preferenceFields.Count == 0)
         {
             return $"Update season cycle & survival aid for {targetName}";
         }
 
-        if (!hasSeason && scalars.Count == 1)
+        if (!hasSeason && moneyScalars.Count == 0 && preferenceFields.Count > 0)
         {
-            return $"Change {FormatFieldLabel(scalars[0].Field).ToLowerInvariant()} for {targetName}";
+            if (preferenceFields.Count == 1)
+            {
+                return $"Change {FormatFieldLabel(preferenceFields[0].Field).ToLowerInvariant()} for {targetName}";
+            }
+
+            return $"Update mutual-aid preferences for {targetName}";
         }
 
-        if (hasSeason && scalars.Count > 0)
+        if (!hasSeason && moneyScalars.Count == 1 && preferenceFields.Count == 0)
+        {
+            return $"Change {FormatFieldLabel(moneyScalars[0].Field).ToLowerInvariant()} for {targetName}";
+        }
+
+        if (hasSeason || (moneyScalars.Count > 0 && preferenceFields.Count > 0))
         {
             return $"Update mutual-aid history for {targetName}";
         }
@@ -84,8 +103,22 @@ public static class CrewmateAidStatChangeDescriber
             CrewmateAidStatField.CycleCompleted => "Cycle completed",
             CrewmateAidStatField.PercentBoost => "Percent boost (this season)",
             CrewmateAidStatField.SeasonAccounting => "Season cycle & survival thresholds",
+            CrewmateAidStatField.InNeedOfAid => "In need of aid",
+            CrewmateAidStatField.NeedsSurvivalAid => "Needs survival aid",
+            CrewmateAidStatField.EmergencyLevel => "Emergency level",
+            CrewmateAidStatField.DisabilityLevel => "Level of disability",
+            CrewmateAidStatField.PeopleRepresentedCount => "People represented",
+            CrewmateAidStatField.PaymentPlatforms => "Payment platforms",
             _ => field.ToString()
         };
+
+    public static bool IsPreferenceField(CrewmateAidStatField field) =>
+        field is CrewmateAidStatField.InNeedOfAid
+            or CrewmateAidStatField.NeedsSurvivalAid
+            or CrewmateAidStatField.EmergencyLevel
+            or CrewmateAidStatField.DisabilityLevel
+            or CrewmateAidStatField.PeopleRepresentedCount
+            or CrewmateAidStatField.PaymentPlatforms;
 
     private static void AppendScalarChange(
         StringBuilder sb,
@@ -113,11 +146,72 @@ public static class CrewmateAidStatChangeDescriber
             case CrewmateAidStatField.CycleCompleted:
                 sb.AppendLine($"• {label}: → {(item.NewValue == "true" ? "Yes" : "No")}");
                 break;
+            case CrewmateAidStatField.InNeedOfAid:
+                sb.AppendLine($"• {label}: {YesNo(current.InNeedOfAid)} → {YesNo(ParseBool(item.NewValue))}");
+                break;
+            case CrewmateAidStatField.NeedsSurvivalAid:
+                sb.AppendLine($"• {label}: {YesNo(current.NeedsSurvivalAid)} → {YesNo(ParseBool(item.NewValue))}");
+                break;
+            case CrewmateAidStatField.EmergencyLevel:
+                sb.AppendLine($"• {label}: {current.EmergencyLevel} → {ParseInt(item.NewValue)}");
+                break;
+            case CrewmateAidStatField.DisabilityLevel:
+                sb.AppendLine($"• {label}: {current.DisabilityLevel} → {ParseInt(item.NewValue)}");
+                break;
+            case CrewmateAidStatField.PeopleRepresentedCount:
+                sb.AppendLine($"• {label}: {current.PeopleRepresentedCount} → {ParseInt(item.NewValue)}");
+                break;
+            case CrewmateAidStatField.PaymentPlatforms:
+                sb.AppendLine($"• {label}: {FormatPlatformsSummary(current.PaymentPlatformsJson)} → {FormatPlatformsSummary(item.NewValue)}");
+                break;
             default:
                 sb.AppendLine($"• {label}: → {item.NewValue}");
                 break;
         }
     }
+
+    public static string FormatPlatformsSummary(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return "(none)";
+        }
+
+        try
+        {
+            var rows = System.Text.Json.JsonSerializer.Deserialize<List<AidPaymentPlatformDraftDto>>(
+                json,
+                new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? [];
+            if (rows.Count == 0)
+            {
+                return "(none)";
+            }
+
+            return string.Join(
+                "; ",
+                rows.Select(r =>
+                {
+                    var name = string.IsNullOrWhiteSpace(r.CustomPlatformName)
+                        ? (string.IsNullOrWhiteSpace(r.PlatformName) ? $"#{r.PlatformId}" : r.PlatformName)
+                        : r.CustomPlatformName.Trim();
+                    var handle = string.IsNullOrWhiteSpace(r.Handle) ? "" : $" {r.Handle.Trim()}";
+                    var preferred = r.IsPreferred ? " (preferred)" : "";
+                    return $"{name}{handle}{preferred}";
+                }));
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return "(invalid platforms)";
+        }
+    }
+
+    private static bool ParseBool(string value) =>
+        value.Equals("true", StringComparison.OrdinalIgnoreCase)
+        || value == "1"
+        || value.Equals("yes", StringComparison.OrdinalIgnoreCase);
 
     private static void AppendSeasonAccountingChange(
         StringBuilder sb,

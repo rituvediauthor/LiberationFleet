@@ -259,6 +259,122 @@ public class PlaceholderCrewmateAndImpersonationTests
     }
 
     [Fact]
+    public async Task MergePlaceholder_InheritsNonDefaultAidProfileFieldsWhenClaimantHasDefaults()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+
+        var placeholder = new User
+        {
+            Username = "ph_aid_prefs",
+            DisplayName = "Pat Aid",
+            Email = "ph-aid-prefs@example.com",
+            PasswordHash = "hash",
+            IsActive = true,
+            IsUnclaimedPlaceholder = true,
+            InNeedOfAid = false,
+            NeedsSurvivalAid = true,
+            EmergencyLevel = 2,
+            DisabilityLevel = 1,
+            PeopleRepresentedCount = 3
+        };
+        fixture.Context.Users.Add(placeholder);
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.CrewMemberships.Add(new CrewMembership
+        {
+            UserId = placeholder.Id,
+            CrewId = fixture.Crew.Id,
+            JoinedAt = DateTime.UtcNow,
+            IsPlaceholderMember = true,
+            IsSeasonReady = true,
+            IsHonoraryMember = true
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        // Carol starts at system defaults for these fields.
+        var carol = await fixture.Context.Users.SingleAsync(u => u.Id == fixture.Carol.Id);
+        carol.InNeedOfAid = true;
+        carol.NeedsSurvivalAid = false;
+        carol.EmergencyLevel = 0;
+        carol.DisabilityLevel = 0;
+        carol.PeopleRepresentedCount = 1;
+        await fixture.Context.SaveChangesAsync();
+
+        var service = CreatePlaceholderService(fixture);
+        await service.MergePlaceholderIntoClaimantAsync(
+            fixture.Crew.Id,
+            placeholder.Id,
+            fixture.Carol.Id,
+            CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        var merged = await fixture.Context.Users.SingleAsync(u => u.Id == fixture.Carol.Id);
+        merged.InNeedOfAid.Should().BeFalse();
+        merged.NeedsSurvivalAid.Should().BeTrue();
+        merged.EmergencyLevel.Should().Be(2);
+        merged.DisabilityLevel.Should().Be(1);
+        merged.PeopleRepresentedCount.Should().Be(3);
+        (await fixture.Context.Users.AnyAsync(u => u.Id == placeholder.Id)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task MergePlaceholder_DoesNotOverwriteClaimantNonDefaultAidProfileFields()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+
+        var placeholder = new User
+        {
+            Username = "ph_aid_keep",
+            DisplayName = "Pat Keep",
+            Email = "ph-aid-keep@example.com",
+            PasswordHash = "hash",
+            IsActive = true,
+            IsUnclaimedPlaceholder = true,
+            InNeedOfAid = false,
+            NeedsSurvivalAid = true,
+            EmergencyLevel = 3,
+            DisabilityLevel = 2,
+            PeopleRepresentedCount = 4
+        };
+        fixture.Context.Users.Add(placeholder);
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.CrewMemberships.Add(new CrewMembership
+        {
+            UserId = placeholder.Id,
+            CrewId = fixture.Crew.Id,
+            JoinedAt = DateTime.UtcNow,
+            IsPlaceholderMember = true,
+            IsSeasonReady = true,
+            IsHonoraryMember = true
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var carol = await fixture.Context.Users.SingleAsync(u => u.Id == fixture.Carol.Id);
+        carol.InNeedOfAid = false;
+        carol.NeedsSurvivalAid = true;
+        carol.EmergencyLevel = 1;
+        carol.DisabilityLevel = 1;
+        carol.PeopleRepresentedCount = 2;
+        await fixture.Context.SaveChangesAsync();
+
+        var service = CreatePlaceholderService(fixture);
+        await service.MergePlaceholderIntoClaimantAsync(
+            fixture.Crew.Id,
+            placeholder.Id,
+            fixture.Carol.Id,
+            CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        var merged = await fixture.Context.Users.SingleAsync(u => u.Id == fixture.Carol.Id);
+        merged.InNeedOfAid.Should().BeFalse();
+        merged.NeedsSurvivalAid.Should().BeTrue();
+        merged.EmergencyLevel.Should().Be(1);
+        merged.DisabilityLevel.Should().Be(1);
+        merged.PeopleRepresentedCount.Should().Be(2);
+    }
+
+    [Fact]
     public async Task MergePlaceholder_InheritsPaymentPlatformsClaimantDoesNotHave()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();

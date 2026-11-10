@@ -19,9 +19,21 @@ import {
   formatSurvivalThresholdMonth,
   parseSurvivalThresholdMonth
 } from '../../../utils/survival-threshold-month.util';
-import { CrewmateAidStatField, AidSeasonAccounting, AidSurvivalThresholdDraft, CrewmateProfile, ProposeCrewmateAidStatChangeItem } from '../../../models/crewmate.model';
+import {
+  CrewmateAidStatField,
+  AidSeasonAccounting,
+  AidSurvivalThresholdDraft,
+  CrewmateListItem,
+  CrewmateProfile,
+  ProposeCrewmateAidStatChangeItem
+} from '../../../models/crewmate.model';
 import { CrewService } from '../../../services/crew.service';
 import { CopyTextButtonComponent } from '../../../components/copy-text-button/copy-text-button.component';
+import { PaymentPlatformEditorComponent } from '../../../components/payment-platform-editor/payment-platform-editor.component';
+import { ProfileService } from '../../../services/profile.service';
+import { CUSTOM_PLATFORM_OPTION_ID, PaymentPlatformAccount } from '../../../models/profile.model';
+import { PaymentPlatformOption } from '../../../models/gift.model';
+import { EMERGENCY_LEVEL_HINT } from '../../../constants/emergency-level';
 
 @Component({
   selector: 'app-crewmate-detail',
@@ -37,7 +49,8 @@ import { CopyTextButtonComponent } from '../../../components/copy-text-button/co
     CrewmateIdCardComponent,
     CollapsibleSectionComponent,
     PriorityScoreAlgorithmsComponent,
-    CopyTextButtonComponent
+    CopyTextButtonComponent,
+    PaymentPlatformEditorComponent
   ],
   templateUrl: './crewmate-detail.component.html',
   styleUrl: './crewmate-detail.component.css'
@@ -59,6 +72,7 @@ export class CrewmateDetailComponent implements OnInit {
   backButton!: ActionBarButton;
   primaryButton: ActionBarButton | null = null;
   secondaryButton: ActionBarButton | null = null;
+  readonly emergencyLevelHint = EMERGENCY_LEVEL_HINT;
 
   aidDraft = {
     estimatedMonthlyContribution: '',
@@ -75,12 +89,25 @@ export class CrewmateDetailComponent implements OnInit {
     removedThresholdIds: [] as number[]
   };
 
+  preferenceDraft = {
+    inNeedOfAid: true,
+    needsSurvivalAid: false,
+    emergencyLevel: 0,
+    disabilityLevel: 0,
+    peopleRepresentedCount: 1
+  };
+  preferencePaymentPlatforms: PaymentPlatformAccount[] = [];
+  platformOptions: PaymentPlatformOption[] = [];
+  mergeTargets: CrewmateListItem[] = [];
+  mergeTargetUserId: number | null = null;
+
   private route = inject(ActivatedRoute);
   private router = inject(Router);
 
   private navigation = inject(NavigationService);
   private crewmateService = inject(CrewmateService);
   private crewService = inject(CrewService);
+  private profileService = inject(ProfileService);
   private fleetService = inject(FleetService);
   private toastService = inject(ToastService);
   userId = 0;
@@ -88,6 +115,19 @@ export class CrewmateDetailComponent implements OnInit {
   /** Organizers/accountants can set placeholder membership without a crew vote. */
   get canDirectPlaceholderMembership(): boolean {
     return !!this.profile?.isPlaceholderMember && !!this.profile?.canManagePlaceholders;
+  }
+
+  get canMergePlaceholder(): boolean {
+    return !!this.profile?.isPlaceholderMember && !!this.profile?.canManagePlaceholders;
+  }
+
+  /** Placeholders: organizers/accountants save mutual-aid edits immediately (no proposal). */
+  get canDirectAidStatEdits(): boolean {
+    return !!this.profile?.isPlaceholderMember && !!this.profile?.canManagePlaceholders;
+  }
+
+  get showIdentitySection(): boolean {
+    return !!this.profile?.canClaimIdentity || this.canMergePlaceholder;
   }
 
   ngOnInit() {
@@ -110,6 +150,15 @@ export class CrewmateDetailComponent implements OnInit {
     this.fleetService.getStatus().subscribe({
       next: status => {
         this.fleetName = status.fleetName ?? null;
+      }
+    });
+
+    this.crewService.getPaymentPlatforms().subscribe({
+      next: platforms => {
+        this.platformOptions = platforms;
+      },
+      error: () => {
+        // Preference edits still work for existing platforms; toast only when editing.
       }
     });
 
@@ -365,6 +414,133 @@ export class CrewmateDetailComponent implements OnInit {
     });
   }
 
+  onMergePlaceholder() {
+    if (!this.canMergePlaceholder || this.actionLoading) {
+      return;
+    }
+
+    const targetUserId = Number(this.mergeTargetUserId);
+    if (!Number.isFinite(targetUserId) || targetUserId <= 0) {
+      this.toastService.error('Select a real crewmate to merge into.');
+      return;
+    }
+
+    this.actionLoading = true;
+    this.crewmateService.mergePlaceholderIntoUser(this.userId, targetUserId).subscribe({
+      next: response => {
+        this.actionLoading = false;
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to merge placeholder');
+          if (response.proposalId) {
+            this.router.navigate(['/app/crew/proposals', response.proposalId]);
+          }
+          return;
+        }
+
+        this.toastService.success(response.message || 'Placeholder merged');
+        this.router.navigate(['/app/crew/crewmates', targetUserId]);
+      },
+      error: err => {
+        this.actionLoading = false;
+        const apiMessage =
+          err?.error?.message
+          || err?.error?.Message
+          || (typeof err?.error === 'string' ? err.error : null);
+        this.toastService.error(apiMessage || 'Failed to merge placeholder');
+      }
+    });
+  }
+
+  addPreferencePaymentPlatform() {
+    this.preferencePaymentPlatforms = [
+      ...this.preferencePaymentPlatforms,
+      this.profileService.createPaymentPlatformAccount(this.platformOptions)
+    ];
+  }
+
+  removePreferencePaymentPlatform(accountId: number) {
+    this.preferencePaymentPlatforms = this.preferencePaymentPlatforms.filter(
+      account => account.id !== accountId
+    );
+  }
+
+  setPreferredPreferencePlatform(accountId: number) {
+    this.preferencePaymentPlatforms = this.preferencePaymentPlatforms.map(account => ({
+      ...account,
+      isPreferred: account.id === accountId
+    }));
+  }
+
+  onProposePreferenceChanges() {
+    if (!this.profile || this.actionLoading || !this.profile.canProposeAidStatEdits) {
+      return;
+    }
+
+    let changes: ProposeCrewmateAidStatChangeItem[];
+    try {
+      changes = this.buildPreferenceChanges();
+    } catch (error) {
+      this.toastService.error(error instanceof Error ? error.message : 'Invalid preference values.');
+      return;
+    }
+
+    if (changes.length === 0) {
+      this.toastService.error(
+        this.canDirectAidStatEdits
+          ? 'Change at least one mutual-aid preference before saving.'
+          : 'Change at least one mutual-aid preference before proposing.'
+      );
+      return;
+    }
+
+    this.actionLoading = true;
+    this.crewmateService.proposeAidStatChange(this.userId, changes).subscribe({
+      next: response => {
+        this.actionLoading = false;
+        if (!response.success) {
+          this.toastService.error(
+            response.message
+              || (this.canDirectAidStatEdits
+                ? 'Failed to save mutual-aid preferences'
+                : 'Failed to submit preference proposal')
+          );
+          if (response.proposalId) {
+            this.router.navigate(['/app/crew/proposals', response.proposalId]);
+          }
+          return;
+        }
+
+        this.toastService.success(
+          response.message
+            || (this.canDirectAidStatEdits
+              ? 'Mutual-aid preferences saved'
+              : 'Mutual-aid preference proposal submitted')
+        );
+        if (response.proposalId) {
+          this.router.navigate(['/app/crew/proposals', response.proposalId]);
+        } else {
+          this.loadProfile();
+        }
+      },
+      error: err => {
+        this.actionLoading = false;
+        const apiMessage =
+          err?.error?.message
+          || err?.error?.Message
+          || (typeof err?.error === 'string' ? err.error : null);
+        this.toastService.error(
+          apiMessage
+            || (this.canDirectAidStatEdits
+              ? 'Failed to save mutual-aid preferences'
+              : 'Failed to submit preference proposal')
+        );
+        if (err?.error?.proposalId) {
+          this.router.navigate(['/app/crew/proposals', err.error.proposalId]);
+        }
+      }
+    });
+  }
+
   onDemote() {
     if (!this.profile || this.actionLoading || this.selectedRoles.size === 0) {
       return;
@@ -507,7 +683,11 @@ export class CrewmateDetailComponent implements OnInit {
     }
 
     if (changes.length === 0) {
-      this.toastService.error('Change at least one aid statistic before proposing.');
+      this.toastService.error(
+        this.canDirectAidStatEdits
+          ? 'Change at least one aid statistic before saving.'
+          : 'Change at least one aid statistic before proposing.'
+      );
       return;
     }
 
@@ -516,16 +696,28 @@ export class CrewmateDetailComponent implements OnInit {
       next: response => {
         this.actionLoading = false;
         if (!response.success) {
-          this.toastService.error(response.message || 'Failed to submit aid statistic proposal');
+          this.toastService.error(
+            response.message
+              || (this.canDirectAidStatEdits
+                ? 'Failed to save aid statistics'
+                : 'Failed to submit aid statistic proposal')
+          );
           if (response.proposalId) {
             this.router.navigate(['/app/crew/proposals', response.proposalId]);
           }
           return;
         }
 
-        this.toastService.success(response.message || 'Aid statistic change proposal submitted');
+        this.toastService.success(
+          response.message
+            || (this.canDirectAidStatEdits
+              ? 'Aid statistics saved'
+              : 'Aid statistic change proposal submitted')
+        );
         if (response.proposalId) {
           this.router.navigate(['/app/crew/proposals', response.proposalId]);
+        } else {
+          this.loadProfile();
         }
       },
       error: err => {
@@ -535,7 +727,12 @@ export class CrewmateDetailComponent implements OnInit {
           err?.error?.message
           || err?.error?.Message
           || (typeof err?.error === 'string' ? err.error : null);
-        this.toastService.error(apiMessage || 'Failed to submit aid statistic proposal');
+        this.toastService.error(
+          apiMessage
+            || (this.canDirectAidStatEdits
+              ? 'Failed to save aid statistics'
+              : 'Failed to submit aid statistic proposal')
+        );
         if (err?.error?.proposalId) {
           this.router.navigate(['/app/crew/proposals', err.error.proposalId]);
         }
@@ -767,8 +964,17 @@ export class CrewmateDetailComponent implements OnInit {
     return this.aidDraft.survivalThresholds.filter(row => {
       const remaining = Number(row.amountRemaining) || 0;
       const received = Number(row.amountReceived) || 0;
-      return remaining > 0 || received > 0 || this.profile?.canProposeAidStatEdits;
+      const pending = Number(row.pendingAmount) || 0;
+      return remaining > 0 || received > 0 || pending > 0 || this.profile?.canProposeAidStatEdits;
     });
+  }
+
+  thresholdOpenNeed(row: AidSurvivalThresholdDraft): number {
+    return Math.max(0, (Number(row.amountRemaining) || 0) - (Number(row.pendingAmount) || 0));
+  }
+
+  thresholdHasPending(row: AidSurvivalThresholdDraft): boolean {
+    return (Number(row.pendingAmount) || 0) > 0;
   }
 
   onThresholdReceivedChange(row: AidSurvivalThresholdDraft, value: number | string): void {
@@ -861,6 +1067,7 @@ export class CrewmateDetailComponent implements OnInit {
           thresholdAmount,
           amountRemaining,
           amountReceived: Math.max(0, thresholdAmount - amountRemaining),
+          pendingAmount: Math.max(0, Number(row.pendingAmount) || 0),
           order: row.order ?? index + 1,
           year,
           month,
@@ -869,6 +1076,160 @@ export class CrewmateDetailComponent implements OnInit {
       }),
       removedThresholdIds: []
     };
+  }
+
+  private syncPreferenceDraftFromProfile() {
+    if (!this.profile) {
+      return;
+    }
+
+    this.preferenceDraft = {
+      inNeedOfAid: !!this.profile.inNeedOfAid,
+      needsSurvivalAid: !!this.profile.needsSurvivalAid,
+      emergencyLevel: this.profile.emergencyLevel ?? 0,
+      disabilityLevel: this.profile.disabilityLevel ?? 0,
+      peopleRepresentedCount: this.profile.peopleRepresentedCount ?? 1
+    };
+
+    this.preferencePaymentPlatforms = (this.profile.paymentPlatforms ?? []).map((platform, index) => ({
+      id: index + 1,
+      platformId: platform.platformId,
+      platform: platform.platformName,
+      handle: platform.handle,
+      isPreferred: !!platform.isPreferred
+    }));
+  }
+
+  private buildPreferenceChanges(): ProposeCrewmateAidStatChangeItem[] {
+    if (!this.profile) {
+      return [];
+    }
+
+    const changes: ProposeCrewmateAidStatChangeItem[] = [];
+
+    if (!!this.preferenceDraft.inNeedOfAid !== !!this.profile.inNeedOfAid) {
+      changes.push({
+        field: 'InNeedOfAid',
+        newValue: this.preferenceDraft.inNeedOfAid ? 'true' : 'false'
+      });
+    }
+
+    if (!!this.preferenceDraft.needsSurvivalAid !== !!this.profile.needsSurvivalAid) {
+      changes.push({
+        field: 'NeedsSurvivalAid',
+        newValue: this.preferenceDraft.needsSurvivalAid ? 'true' : 'false'
+      });
+    }
+
+    const emergency = Number(this.preferenceDraft.emergencyLevel);
+    if (!Number.isInteger(emergency) || emergency < 0 || emergency > 3) {
+      throw new Error('Emergency level must be a whole number from 0 to 3.');
+    }
+    if (emergency !== (this.profile.emergencyLevel ?? 0)) {
+      changes.push({ field: 'EmergencyLevel', newValue: String(emergency) });
+    }
+
+    const disability = Number(this.preferenceDraft.disabilityLevel);
+    if (!Number.isInteger(disability) || disability < 0 || disability > 3) {
+      throw new Error('Disability level must be a whole number from 0 to 3.');
+    }
+    if (disability !== (this.profile.disabilityLevel ?? 0)) {
+      changes.push({ field: 'DisabilityLevel', newValue: String(disability) });
+    }
+
+    const people = Number(this.preferenceDraft.peopleRepresentedCount);
+    if (!Number.isInteger(people) || people < 1 || people > 99) {
+      throw new Error('People represented must be a whole number from 1 to 99.');
+    }
+    if (people !== (this.profile.peopleRepresentedCount ?? 1)) {
+      changes.push({ field: 'PeopleRepresentedCount', newValue: String(people) });
+    }
+
+    if (this.platformsChanged()) {
+      const platformsPayload = this.preferencePaymentPlatforms
+        .filter(p => !!String(p.handle ?? '').trim())
+        .map(p => ({
+          platformId: Number(p.platformId) || 0,
+          platformName: typeof p.platform === 'string' ? p.platform : undefined,
+          customPlatformName:
+            Number(p.platformId) === CUSTOM_PLATFORM_OPTION_ID
+              ? (p.customPlatformName || undefined)
+              : undefined,
+          handle: String(p.handle).trim(),
+          isPreferred: !!p.isPreferred
+        }));
+
+      changes.push({
+        field: 'PaymentPlatforms',
+        newValue: JSON.stringify(platformsPayload)
+      });
+    }
+
+    return changes;
+  }
+
+  private platformsChanged(): boolean {
+    if (!this.profile) {
+      return false;
+    }
+
+    const current = [...(this.profile.paymentPlatforms ?? [])]
+      .map(p => ({
+        platformId: p.platformId,
+        handle: (p.handle || '').trim(),
+        isPreferred: !!p.isPreferred
+      }))
+      .sort((a, b) => a.platformId - b.platformId || a.handle.localeCompare(b.handle));
+
+    const next = this.preferencePaymentPlatforms
+      .filter(p => !!String(p.handle ?? '').trim())
+      .map(p => ({
+        platformId: Number(p.platformId) || 0,
+        handle: String(p.handle).trim(),
+        isPreferred: !!p.isPreferred
+      }))
+      .sort((a, b) => a.platformId - b.platformId || a.handle.localeCompare(b.handle));
+
+    if (current.length !== next.length) {
+      return true;
+    }
+
+    for (let i = 0; i < current.length; i++) {
+      if (
+        current[i].platformId !== next[i].platformId
+        || current[i].handle !== next[i].handle
+        || current[i].isPreferred !== next[i].isPreferred
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private loadMergeTargets() {
+    if (!this.canMergePlaceholder) {
+      this.mergeTargets = [];
+      this.mergeTargetUserId = null;
+      return;
+    }
+
+    this.crewmateService.getCrewmates().subscribe({
+      next: response => {
+        this.mergeTargets = (response.items ?? []).filter(
+          item => !item.isPlaceholderMember && !item.isSelf && item.userId !== this.userId
+        );
+        if (
+          this.mergeTargetUserId != null
+          && !this.mergeTargets.some(item => item.userId === this.mergeTargetUserId)
+        ) {
+          this.mergeTargetUserId = null;
+        }
+      },
+      error: () => {
+        this.mergeTargets = [];
+      }
+    });
   }
 
   onConfirmBlock() {
@@ -894,6 +1255,8 @@ export class CrewmateDetailComponent implements OnInit {
           this.identityGroupLabels = formatIdentityGroupLabels(response.profile.identityGroups);
           this.selectedRoles.clear();
           this.syncAidDraftFromProfile();
+          this.syncPreferenceDraftFromProfile();
+          this.loadMergeTargets();
           this.updateActionButtons();
         }
         this.loading = false;

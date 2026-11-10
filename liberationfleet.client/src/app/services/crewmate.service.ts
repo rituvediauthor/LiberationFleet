@@ -184,6 +184,12 @@ export class CrewmateService {
     return this.http.post<CrewmateKickResponse>(`${this.apiUrl}/${userId}/claim-identity`, {});
   }
 
+  mergePlaceholderIntoUser(placeholderUserId: number, targetUserId: number): Observable<CrewmateKickResponse> {
+    return this.http.post<CrewmateKickResponse>(`${this.apiUrl}/${placeholderUserId}/merge-placeholder`, {
+      targetUserId
+    });
+  }
+
   private mapListItem(item: CrewmateListItem): CrewmateListItem {
     return {
       ...item,
@@ -216,6 +222,8 @@ export class CrewmateService {
       canExportCrewData: !!profile.canExportCrewData,
       isPlaceholderMember: !!profile.isPlaceholderMember,
       canClaimIdentity: !!profile.canClaimIdentity,
+      canManagePlaceholders: !!profile.canManagePlaceholders,
+      canProposeAidStatEdits: !!profile.canProposeAidStatEdits,
       isInSeason: !!profile.isInSeason,
       friendshipState: mapFriendshipState(profile.friendshipState as unknown as number | string),
       canSocialInteract: profile.canSocialInteract !== false

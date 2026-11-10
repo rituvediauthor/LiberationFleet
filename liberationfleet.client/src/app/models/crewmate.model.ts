@@ -125,6 +125,8 @@ export interface AidSurvivalThresholdDraft {
   amountRemaining: number;
   /** Client-only edit helper: money already received (threshold − remaining). */
   amountReceived?: number;
+  /** Pending unverified gifts scoped to this threshold (from server). */
+  pendingAmount?: number;
   order: number;
   /** Calendar year this threshold is tied to. */
   year?: number | null;
@@ -151,7 +153,13 @@ export type CrewmateAidStatField =
   | 'ReceptionThisYear'
   | 'CycleReceived'
   | 'PercentBoost'
-  | 'SeasonAccounting';
+  | 'SeasonAccounting'
+  | 'InNeedOfAid'
+  | 'NeedsSurvivalAid'
+  | 'EmergencyLevel'
+  | 'DisabilityLevel'
+  | 'PeopleRepresentedCount'
+  | 'PaymentPlatforms';
 
 export interface ProposeCrewmateAidStatChangeItem {
   field: CrewmateAidStatField;

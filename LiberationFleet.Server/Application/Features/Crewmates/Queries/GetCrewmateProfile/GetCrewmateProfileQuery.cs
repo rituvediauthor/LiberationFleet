@@ -127,6 +127,13 @@ public class GetCrewmateProfileQueryHandler(
                 thresholds,
                 targetMembership.AutoJoinSeasonOnStart,
                 effectiveCycleCap: seasonCap > 0m ? seasonCap : null);
+            await ApplyPendingSurvivalCreditsAsync(
+                giftRepository,
+                viewerMembership.CrewId,
+                seasonStartDate,
+                request.UserId,
+                seasonAccounting,
+                cancellationToken);
         }
         else
         {
@@ -182,5 +189,58 @@ public class GetCrewmateProfileQueryHandler(
                 seasonAccounting,
                 pendingRoleChange?.ProposalId)
         };
+    }
+
+    private static async Task ApplyPendingSurvivalCreditsAsync(
+        IGiftRepository giftRepository,
+        int crewId,
+        DateTime seasonStartDate,
+        int userId,
+        AidSeasonAccountingDto seasonAccounting,
+        CancellationToken cancellationToken)
+    {
+        if (seasonAccounting.SurvivalThresholds.Count == 0)
+        {
+            return;
+        }
+
+        var pendingCredits = await giftRepository.GetPendingReceptionCreditsAsync(
+            crewId,
+            seasonStartDate,
+            cancellationToken);
+        var pendingByThresholdId = new Dictionary<int, decimal>();
+        var pendingUnscoped = 0m;
+        foreach (var credit in pendingCredits.Where(c =>
+                     c.IsSurvivalThreshold && c.RecipientUserId == userId))
+        {
+            if (credit.MonthlySurvivalThresholdId.HasValue)
+            {
+                pendingByThresholdId[credit.MonthlySurvivalThresholdId.Value] =
+                    pendingByThresholdId.GetValueOrDefault(credit.MonthlySurvivalThresholdId.Value)
+                    + credit.Amount;
+            }
+            else
+            {
+                pendingUnscoped += credit.Amount;
+            }
+        }
+
+        foreach (var row in seasonAccounting.SurvivalThresholds
+                     .OrderBy(t => t.Order)
+                     .ThenBy(t => t.Year)
+                     .ThenBy(t => t.Month))
+        {
+            var pending = row.Id is int id
+                ? pendingByThresholdId.GetValueOrDefault(id)
+                : 0m;
+            if (pendingUnscoped > 0m && row.AmountRemaining > pending)
+            {
+                var appliedUnscoped = Math.Min(pendingUnscoped, row.AmountRemaining - pending);
+                pending += appliedUnscoped;
+                pendingUnscoped -= appliedUnscoped;
+            }
+
+            row.PendingAmount = pending;
+        }
     }
 }

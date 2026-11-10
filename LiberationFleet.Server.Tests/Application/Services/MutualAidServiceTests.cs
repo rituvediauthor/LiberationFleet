@@ -556,6 +556,124 @@ public class MutualAidServiceTests
     }
 
     [Fact]
+    public async Task ApplyGiftReceptionAsync_SurvivalGiftBurnsThresholdWithoutIncompleteCycle()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+        var threshold = await fixture.AddUnsatisfiedThresholdAsync(fixture.Bob, thresholdAmount: 40m);
+
+        // Complete Bob's cycle so FindIncompleteCycleForUserAsync returns null.
+        var bobCycles = await fixture.Context.SeasonCycles
+            .Where(c => c.UserId == fixture.Bob.Id && c.CrewId == fixture.Crew.Id)
+            .ToListAsync();
+        foreach (var cycle in bobCycles)
+        {
+            cycle.CycleCompleted = true;
+            cycle.CycleCompletedAt = DateTime.UtcNow;
+            cycle.CycleReceived = cycle.CycleCapAtStart;
+        }
+
+        var gift = new Gift
+        {
+            CrewId = fixture.Crew.Id,
+            GiverUserId = fixture.Alice.Id,
+            RecipientUserId = fixture.Bob.Id,
+            Type = GiftType.Direct,
+            Amount = 40m,
+            CrewPaymentPlatformId = fixture.Platforms["PayPal"].Id,
+            CountsTowardReception = true,
+            IsCustomGift = false,
+            IsSurvivalThreshold = true,
+            MonthlySurvivalThresholdId = threshold.Id,
+            CreatedAt = DateTime.UtcNow
+        };
+        fixture.Context.Gifts.Add(gift);
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.ApplyGiftReceptionAsync(gift, CancellationToken.None);
+
+        var reloaded = await fixture.Context.MonthlySurvivalThresholds.SingleAsync(t => t.Id == threshold.Id);
+        reloaded.ReceivedAmount.Should().Be(40m);
+        reloaded.Satisfied.Should().BeTrue();
+        gift.ReceptionApplied.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateSurvivalThresholds_PendingCoveredPriorsDoNotBlockCurrentMonth()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(monthlyContribution: 0m);
+        foreach (var membership in fixture.Context.CrewMemberships)
+        {
+            membership.EstimatedMonthlyContribution = 30m;
+            membership.GivingSeasonJoinedAt = DateTime.UtcNow;
+        }
+
+        fixture.Bob.NeedsSurvivalAid = true;
+        await fixture.Context.SaveChangesAsync();
+
+        var priorYear = DateTime.UtcNow.Month == 1 ? DateTime.UtcNow.Year - 1 : DateTime.UtcNow.Year;
+        var priorMonth = DateTime.UtcNow.Month == 1 ? 12 : DateTime.UtcNow.Month - 1;
+        var olderMonth = priorMonth == 1 ? 12 : priorMonth - 1;
+        var olderYear = priorMonth == 1 ? priorYear - 1 : priorYear;
+
+        var older = await fixture.AddUnsatisfiedThresholdAsync(
+            fixture.Bob,
+            thresholdAmount: 20m,
+            receptionOrderPosition: 0,
+            year: olderYear,
+            month: olderMonth);
+        var prior = await fixture.AddUnsatisfiedThresholdAsync(
+            fixture.Bob,
+            thresholdAmount: 20m,
+            receptionOrderPosition: 1,
+            year: priorYear,
+            month: priorMonth);
+
+        // Full pending gifts against both priors — without pending-aware cap, current month is skipped.
+        fixture.Context.Gifts.AddRange(
+            new Gift
+            {
+                CrewId = fixture.Crew.Id,
+                GiverUserId = fixture.Alice.Id,
+                RecipientUserId = fixture.Bob.Id,
+                Type = GiftType.Direct,
+                Amount = 20m,
+                CrewPaymentPlatformId = fixture.Platforms["PayPal"].Id,
+                CountsTowardReception = true,
+                IsSurvivalThreshold = true,
+                MonthlySurvivalThresholdId = older.Id,
+                VerificationStatus = GiftVerificationStatus.Pending,
+                CreatedAt = DateTime.UtcNow
+            },
+            new Gift
+            {
+                CrewId = fixture.Crew.Id,
+                GiverUserId = fixture.Alice.Id,
+                RecipientUserId = fixture.Bob.Id,
+                Type = GiftType.Direct,
+                Amount = 20m,
+                CrewPaymentPlatformId = fixture.Platforms["PayPal"].Id,
+                CountsTowardReception = true,
+                IsSurvivalThreshold = true,
+                MonthlySurvivalThresholdId = prior.Id,
+                VerificationStatus = GiftVerificationStatus.Pending,
+                CreatedAt = DateTime.UtcNow
+            });
+        await fixture.Context.SaveChangesAsync();
+
+        await fixture.Service.EnsureCurrentMonthSurvivalThresholdsAsync(fixture.Alice.Id, CancellationToken.None);
+
+        var now = DateTime.UtcNow;
+        var bobCurrent = await fixture.Context.MonthlySurvivalThresholds
+            .Where(t => t.CrewId == fixture.Crew.Id
+                && t.UserId == fixture.Bob.Id
+                && t.Year == now.Year
+                && t.Month == now.Month
+                && !t.Satisfied)
+            .ToListAsync();
+        bobCurrent.Should().HaveCount(1);
+    }
+
+    [Fact]
     public async Task GetSeasonStatusAsync_DoesNotAutoStartWhenThreeMembersAlreadyReady()
     {
         var context = TestDbContextFactory.Create();

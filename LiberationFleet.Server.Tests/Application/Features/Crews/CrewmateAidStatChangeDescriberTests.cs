@@ -7,6 +7,38 @@ namespace LiberationFleet.Server.Tests.Application.Features.Crews;
 public class CrewmateAidStatChangeDescriberTests
 {
     [Fact]
+    public void BuildDescription_ShowsPreferenceFieldDiffs()
+    {
+        var text = CrewmateAidStatChangeDescriber.BuildDescription(
+            "Dana",
+            [
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.InNeedOfAid, NewValue = "false" },
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.NeedsSurvivalAid, NewValue = "true" },
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.EmergencyLevel, NewValue = "2" },
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.PeopleRepresentedCount, NewValue = "3" }
+            ],
+            new CrewmateAidStatChangeDescriber.CurrentAidSnapshot
+            {
+                InNeedOfAid = true,
+                NeedsSurvivalAid = false,
+                EmergencyLevel = 0,
+                PeopleRepresentedCount = 1
+            });
+
+        text.Should().Contain("In need of aid: Yes → No");
+        text.Should().Contain("Needs survival aid: No → Yes");
+        text.Should().Contain("Emergency level: 0 → 2");
+        text.Should().Contain("People represented: 1 → 3");
+        CrewmateAidStatChangeDescriber.BuildTitle(
+            "Dana",
+            [
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.InNeedOfAid, NewValue = "false" },
+                new CrewmateAidStatChangeItem { Field = CrewmateAidStatField.NeedsSurvivalAid, NewValue = "true" }
+            ])
+            .Should().Be("Update mutual-aid preferences for Dana");
+    }
+
+    [Fact]
     public void BuildDescription_ShowsBeforeAndAfterForLifetimeOverride()
     {
         var text = CrewmateAidStatChangeDescriber.BuildDescription(

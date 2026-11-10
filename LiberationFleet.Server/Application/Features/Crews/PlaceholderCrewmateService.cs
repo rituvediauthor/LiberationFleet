@@ -300,9 +300,13 @@ public class PlaceholderCrewmateService(
 
         var placeholderUser = await userRepository.GetByIdWithProfileAsync(placeholderUserId, cancellationToken);
         var claimantUser = await userRepository.GetByIdWithProfileAsync(claimantUserId, cancellationToken);
+        var aidProfileChanged = false;
+        var previousInNeed = claimantUser?.InNeedOfAid;
+        var previousNeedsSurvival = claimantUser?.NeedsSurvivalAid;
         if (placeholderUser is not null && claimantUser is not null)
         {
             InheritMissingPaymentPlatforms(placeholderUser, claimantUser);
+            aidProfileChanged = InheritMissingAidProfileFields(placeholderUser, claimantUser);
         }
 
         if (placeholderUser is not null && placeholderUser.IsUnclaimedPlaceholder)
@@ -311,6 +315,67 @@ public class PlaceholderCrewmateService(
         }
 
         await mutualAidService.OnCrewmatePriorityChangedAsync(claimantUserId, cancellationToken);
+
+        if (aidProfileChanged && claimantUser is not null)
+        {
+            if (previousInNeed != claimantUser.InNeedOfAid)
+            {
+                await mutualAidService.OnInNeedOfAidChangedAsync(
+                    claimantUserId,
+                    claimantUser.InNeedOfAid,
+                    cancellationToken);
+            }
+
+            if (previousNeedsSurvival != claimantUser.NeedsSurvivalAid && claimantUser.NeedsSurvivalAid)
+            {
+                await mutualAidService.EnsureCurrentMonthSurvivalThresholdsAsync(
+                    claimantUserId,
+                    cancellationToken);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Copies non-default mutual-aid profile values from the placeholder onto the claimant
+    /// only when the claimant still has the system default for that field.
+    /// </summary>
+    private static bool InheritMissingAidProfileFields(User placeholderUser, User claimantUser)
+    {
+        var changed = false;
+
+        // Default InNeedOfAid is true.
+        if (claimantUser.InNeedOfAid && !placeholderUser.InNeedOfAid)
+        {
+            claimantUser.InNeedOfAid = false;
+            changed = true;
+        }
+
+        // Default NeedsSurvivalAid is false.
+        if (!claimantUser.NeedsSurvivalAid && placeholderUser.NeedsSurvivalAid)
+        {
+            claimantUser.NeedsSurvivalAid = true;
+            changed = true;
+        }
+
+        if (claimantUser.EmergencyLevel == 0 && placeholderUser.EmergencyLevel != 0)
+        {
+            claimantUser.EmergencyLevel = placeholderUser.EmergencyLevel;
+            changed = true;
+        }
+
+        if (claimantUser.DisabilityLevel == 0 && placeholderUser.DisabilityLevel != 0)
+        {
+            claimantUser.DisabilityLevel = placeholderUser.DisabilityLevel;
+            changed = true;
+        }
+
+        if (claimantUser.PeopleRepresentedCount == 1 && placeholderUser.PeopleRepresentedCount != 1)
+        {
+            claimantUser.PeopleRepresentedCount = placeholderUser.PeopleRepresentedCount;
+            changed = true;
+        }
+
+        return changed;
     }
 
     /// <summary>
