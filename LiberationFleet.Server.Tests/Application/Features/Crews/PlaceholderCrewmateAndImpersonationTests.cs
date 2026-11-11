@@ -259,6 +259,102 @@ public class PlaceholderCrewmateAndImpersonationTests
     }
 
     [Fact]
+    public async Task MergePlaceholder_AddsLifetimeAndReceptionAmountsFromBothSides()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+
+        var placeholder = new User
+        {
+            Username = "ph_lifetime",
+            DisplayName = "Pat Lifetime",
+            Email = "ph-lifetime@example.com",
+            PasswordHash = "hash",
+            IsActive = true,
+            IsUnclaimedPlaceholder = true
+        };
+        fixture.Context.Users.Add(placeholder);
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.CrewMemberships.Add(new CrewMembership
+        {
+            UserId = placeholder.Id,
+            CrewId = fixture.Crew.Id,
+            JoinedAt = DateTime.UtcNow,
+            IsPlaceholderMember = true,
+            IsHonoraryMember = true,
+            LifetimeContributionOverride = 130m,
+            ReceptionThisYearOverride = 40m
+        });
+
+        var carolMembership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Carol.Id && m.CrewId == fixture.Crew.Id);
+        carolMembership.LifetimeContributionOverride = 50m;
+        carolMembership.ReceptionThisYearOverride = 10m;
+        await fixture.Context.SaveChangesAsync();
+
+        var service = CreatePlaceholderService(fixture);
+        await service.MergePlaceholderIntoClaimantAsync(
+            fixture.Crew.Id,
+            placeholder.Id,
+            fixture.Carol.Id,
+            CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        var mergedMembership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Carol.Id && m.CrewId == fixture.Crew.Id);
+        mergedMembership.LifetimeContributionOverride.Should().Be(180m);
+        mergedMembership.ReceptionThisYearOverride.Should().Be(50m);
+        (await fixture.Context.CrewMemberships.AnyAsync(m => m.UserId == placeholder.Id)).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task MergePlaceholder_WhenClaimantHasDefaultZero_KeepsPlaceholderLifetime()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();
+
+        var placeholder = new User
+        {
+            Username = "ph_lifetime_zero",
+            DisplayName = "Pat Zero",
+            Email = "ph-lifetime-zero@example.com",
+            PasswordHash = "hash",
+            IsActive = true,
+            IsUnclaimedPlaceholder = true
+        };
+        fixture.Context.Users.Add(placeholder);
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.CrewMemberships.Add(new CrewMembership
+        {
+            UserId = placeholder.Id,
+            CrewId = fixture.Crew.Id,
+            JoinedAt = DateTime.UtcNow,
+            IsPlaceholderMember = true,
+            IsHonoraryMember = true,
+            LifetimeContributionOverride = 130m
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var carolMembership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Carol.Id && m.CrewId == fixture.Crew.Id);
+        carolMembership.LifetimeContributionOverride = null;
+        carolMembership.ReceptionThisYearOverride = null;
+        await fixture.Context.SaveChangesAsync();
+
+        var service = CreatePlaceholderService(fixture);
+        await service.MergePlaceholderIntoClaimantAsync(
+            fixture.Crew.Id,
+            placeholder.Id,
+            fixture.Carol.Id,
+            CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        var mergedMembership = await fixture.Context.CrewMemberships
+            .SingleAsync(m => m.UserId == fixture.Carol.Id && m.CrewId == fixture.Crew.Id);
+        mergedMembership.LifetimeContributionOverride.Should().Be(130m);
+    }
+
+    [Fact]
     public async Task MergePlaceholder_InheritsNonDefaultAidProfileFieldsWhenClaimantHasDefaults()
     {
         await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync();

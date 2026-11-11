@@ -232,17 +232,37 @@ public class PlaceholderCrewmateService(
         int claimantUserId,
         CancellationToken cancellationToken)
     {
+        var placeholderMembership = await membershipRepository.GetMembershipAsync(
+            placeholderUserId,
+            crewId,
+            cancellationToken);
+        var claimantMembership = await membershipRepository.GetMembershipAsync(
+            claimantUserId,
+            crewId,
+            cancellationToken);
+        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
+
+        // Capture effective totals before gift reassignment so overrides + gift-derived
+        // amounts from both sides can be summed onto the surviving membership.
+        var seasonStart = crew?.CurrentSeasonStartDate;
+        var placeholderStats = await giftRepository.GetCrewmateGiftStatsAsync(
+            placeholderUserId,
+            crewId,
+            seasonStart,
+            cancellationToken);
+        var claimantStats = await giftRepository.GetCrewmateGiftStatsAsync(
+            claimantUserId,
+            crewId,
+            seasonStart,
+            cancellationToken);
+        var mergedLifetime = placeholderStats.LifetimeContributions + claimantStats.LifetimeContributions;
+        var mergedReception = placeholderStats.ReceptionThisYear + claimantStats.ReceptionThisYear;
+
         await giftRepository.ReassignPlaceholderGiftRecipientsAsync(
             crewId,
             placeholderUserId,
             claimantUserId,
             cancellationToken);
-
-        var placeholderMembership = await membershipRepository.GetMembershipAsync(
-            placeholderUserId,
-            crewId,
-            cancellationToken);
-        var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
 
         // Check entries before merge — UserId reassignment is not yet saved, so post-merge
         // DB queries would still miss placeholder rows that only exist in the change tracker.
@@ -251,12 +271,12 @@ public class PlaceholderCrewmateService(
         var placeholderHadSeasonEntries = await HasCurrentSeasonEntriesAsync(
             crewId,
             placeholderUserId,
-            crew?.CurrentSeasonStartDate,
+            seasonStart,
             cancellationToken);
         var claimantHadSeasonEntries = await HasCurrentSeasonEntriesAsync(
             crewId,
             claimantUserId,
-            crew?.CurrentSeasonStartDate,
+            seasonStart,
             cancellationToken);
 
         await mutualAidRepository.MergePlaceholderIdentityDataAsync(
@@ -265,12 +285,12 @@ public class PlaceholderCrewmateService(
             claimantUserId,
             cancellationToken);
 
-        var claimantMembership = await membershipRepository.GetMembershipAsync(
-            claimantUserId,
-            crewId,
-            cancellationToken);
         if (claimantMembership is not null)
         {
+            // Contribution / reception totals add across the merge (placeholder + claimant).
+            claimantMembership.LifetimeContributionOverride = mergedLifetime;
+            claimantMembership.ReceptionThisYearOverride = mergedReception;
+
             // If the placeholder (or claimant) has season entries, they are in the season.
             if (placeholderWasInSeason
                 || placeholderHadSeasonEntries
@@ -281,7 +301,7 @@ public class PlaceholderCrewmateService(
                 claimantMembership.IsSeasonReady = true;
                 claimantMembership.GivingSeasonJoinedAt ??=
                     placeholderMembership?.GivingSeasonJoinedAt
-                    ?? crew?.CurrentSeasonStartDate
+                    ?? seasonStart
                     ?? DateTime.UtcNow;
             }
 
@@ -290,6 +310,12 @@ public class PlaceholderCrewmateService(
                 && !claimantMembership.AutoJoinSeasonOnStart)
             {
                 claimantMembership.AutoJoinSeasonOnStart = true;
+            }
+
+            if (placeholderMembership?.EstimatedMonthlyContribution is decimal placeholderEstimate
+                && claimantMembership.EstimatedMonthlyContribution is null)
+            {
+                claimantMembership.EstimatedMonthlyContribution = placeholderEstimate;
             }
         }
 
