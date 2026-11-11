@@ -261,6 +261,100 @@ public class RecordGiftsCommandHandlerTests
         giftRepository.Verify(r => r.AddAsync(It.IsAny<Gift>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
     }
 
+    [Fact]
+    public async Task Handle_WhenRecordingGift_NotifiesEachViewerOnceWithRoleKind()
+    {
+        var giver = HandlerTestFixture.CreateUser(id: 1, username: "giver");
+        var recipient = HandlerTestFixture.CreateUser(id: 2, username: "recipient");
+        var middleman = HandlerTestFixture.CreateUser(id: 3, username: "middle");
+        var bystander = HandlerTestFixture.CreateUser(id: 4, username: "bystander");
+        var crew = HandlerTestFixture.CreateCrew();
+        var giverMembership = HandlerTestFixture.CreateMembership(giver, crew);
+        giverMembership.IsInSeason = true;
+        var recipientMembership = HandlerTestFixture.CreateMembership(recipient, crew);
+        var middlemanMembership = HandlerTestFixture.CreateMembership(middleman, crew);
+        middlemanMembership.IsIntermediary = true;
+        var bystanderMembership = HandlerTestFixture.CreateMembership(bystander, crew);
+
+        var membershipRepository = HandlerTestFixture.CreateCrewMembershipRepositoryMock();
+        membershipRepository
+            .Setup(r => r.GetActiveMembershipAsync(giver.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(giverMembership);
+        membershipRepository
+            .Setup(r => r.IsUserInCrewAsync(recipient.Id, crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        membershipRepository
+            .Setup(r => r.IsUserInCrewAsync(middleman.Id, crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(true);
+        membershipRepository
+            .Setup(r => r.GetMembershipAsync(middleman.Id, crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(middlemanMembership);
+
+        Gift? savedGift = null;
+        var giftRepository = HandlerTestFixture.CreateGiftRepositoryMock();
+        giftRepository
+            .Setup(r => r.AddAsync(It.IsAny<Gift>(), It.IsAny<CancellationToken>()))
+            .Callback<Gift, CancellationToken>((gift, _) =>
+            {
+                gift.Id = 99;
+                savedGift = gift;
+            })
+            .Returns(Task.CompletedTask);
+        giftRepository
+            .Setup(r => r.GetByIdWithUsersAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((int id, CancellationToken _) =>
+            {
+                savedGift!.Id = id;
+                savedGift.GiverUser = giver;
+                savedGift.RecipientUser = recipient;
+                savedGift.MiddlemanUser = middleman;
+                savedGift.CrewPaymentPlatform = HandlerTestFixture.CreateCrewPaymentPlatform(1, crew.Id, "PayPal");
+                return savedGift;
+            });
+
+        var captured = new List<Notification>();
+        var notificationRepository = new Mock<INotificationRepository>(MockBehavior.Loose);
+        notificationRepository
+            .Setup(r => r.GetUserIdsWithKindDisabledAsync(
+                It.IsAny<IReadOnlyCollection<int>>(),
+                It.IsAny<NotificationKind>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new HashSet<int>());
+        notificationRepository
+            .Setup(r => r.AddRangeAsync(It.IsAny<IEnumerable<Notification>>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<Notification>, CancellationToken>((items, _) => captured.AddRange(items))
+            .Returns(Task.CompletedTask);
+        var notificationService = HandlerTestFixture.CreateNotificationService(
+            notificationRepository: notificationRepository);
+
+        var handler = CreateHandler(
+            currentUserId: giver.Id,
+            membershipRepository: membershipRepository,
+            giftRepository: giftRepository,
+            notificationService: notificationService);
+
+        membershipRepository
+            .Setup(r => r.GetActiveMembersByCrewIdAsync(crew.Id, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new[] { giverMembership, recipientMembership, middlemanMembership, bystanderMembership });
+
+        var result = await handler.Handle(
+            new RecordGiftsCommand(
+            [
+                new GiftRecordItem(25, 1, recipient.Id, middleman.Id, false, "cycle")
+            ]),
+            CancellationToken.None);
+
+        result.Success.Should().BeTrue();
+        captured.Should().HaveCount(3);
+        captured.Should().ContainSingle(n =>
+            n.UserId == recipient.Id && n.Kind == NotificationKind.GiftReceivedByMe);
+        captured.Should().ContainSingle(n =>
+            n.UserId == middleman.Id && n.Kind == NotificationKind.IntermediaryGift);
+        captured.Should().ContainSingle(n =>
+            n.UserId == bystander.Id && n.Kind == NotificationKind.NewGifts);
+        captured.Should().NotContain(n => n.UserId == giver.Id);
+    }
+
     private static RecordGiftsCommandHandler CreateHandler(
         int? currentUserId = 1,
         Mock<ICrewMembershipRepository>? membershipRepository = null,
@@ -270,6 +364,9 @@ public class RecordGiftsCommandHandlerTests
         Mock<IUnitOfWork>? unitOfWork = null)
     {
         membershipRepository ??= HandlerTestFixture.CreateCrewMembershipRepositoryMock();
+        membershipRepository
+            .Setup(r => r.GetActiveMembersByCrewIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(Array.Empty<CrewMembership>());
         giftRepository ??= HandlerTestFixture.CreateGiftRepositoryMock();
         crewPaymentPlatformRepository ??= HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock();
         notificationService ??= HandlerTestFixture.CreateNotificationService();
@@ -279,7 +376,12 @@ public class RecordGiftsCommandHandlerTests
         userRepository
             .Setup(r => r.GetByIdWithProfileAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((int id, CancellationToken _) => HandlerTestFixture.CreateUser(id: id));
+        userRepository
+            .Setup(r => r.GetByIdsAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((IReadOnlyCollection<int> ids, CancellationToken _) =>
+                ids.Select(id => HandlerTestFixture.CreateUser(id: id)).ToList());
 
+        var contributionRefresh = new Mock<ICrewContributionRefreshScheduler>(MockBehavior.Loose);
         return new RecordGiftsCommandHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
             membershipRepository.Object,
@@ -289,6 +391,7 @@ public class RecordGiftsCommandHandlerTests
             new Mock<IMutualAidRepository>(MockBehavior.Loose).Object,
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
             new Mock<ICustomGiftRecordingService>(MockBehavior.Loose).Object,
+            contributionRefresh.Object,
             notificationService,
             unitOfWork.Object,
             NullLogger<RecordGiftsCommandHandler>.Instance);

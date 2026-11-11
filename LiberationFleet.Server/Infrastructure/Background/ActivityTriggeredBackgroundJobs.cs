@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
+using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace LiberationFleet.Server.Infrastructure.Background;
@@ -11,10 +13,11 @@ namespace LiberationFleet.Server.Infrastructure.Background;
 public sealed class ActivityTriggeredBackgroundJobs(
     IServiceScopeFactory scopeFactory,
     IOptions<BackgroundJobsOptions> options,
-    ILogger<ActivityTriggeredBackgroundJobs> logger)
+    ILogger<ActivityTriggeredBackgroundJobs> logger) : ICrewContributionRefreshScheduler
 {
     private readonly ConcurrentDictionary<string, long> _lastStartedUnixMs = new();
     private readonly ConcurrentDictionary<string, byte> _inFlight = new();
+    private readonly ConcurrentDictionary<int, byte> _pendingContributionRefresh = new();
 
     public void NotifyProposalActivity()
     {
@@ -36,6 +39,55 @@ public sealed class ActivityTriggeredBackgroundJobs(
 
         TrySchedule("gift-auto-verify", async (sp, ct) =>
             await GiftAutoVerifySweep.RunAsync(sp, logger, ct));
+    }
+
+    /// <summary>
+    /// Recalculate crew priority / reception order after gifts were saved.
+    /// Runs off the request thread so RecordGifts can return immediately.
+    /// </summary>
+    public void Schedule(int crewId)
+    {
+        if (crewId <= 0)
+        {
+            return;
+        }
+
+        _pendingContributionRefresh[crewId] = 0;
+        PumpContributionRefresh(crewId);
+    }
+
+    private void PumpContributionRefresh(int crewId)
+    {
+        var key = $"crew-contrib-{crewId}";
+        if (!_inFlight.TryAdd(key, 0))
+        {
+            return;
+        }
+
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (_pendingContributionRefresh.TryRemove(crewId, out _))
+                {
+                    using var scope = scopeFactory.CreateScope();
+                    var mutualAid = scope.ServiceProvider.GetRequiredService<IMutualAidService>();
+                    await mutualAid.OnCrewContributionsChangedAsync(crewId, CancellationToken.None);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "Deferred crew contribution refresh failed for crew {CrewId}.", crewId);
+            }
+            finally
+            {
+                _inFlight.TryRemove(key, out _);
+                if (_pendingContributionRefresh.ContainsKey(crewId))
+                {
+                    PumpContributionRefresh(crewId);
+                }
+            }
+        });
     }
 
     public void NotifyMediaActivity()

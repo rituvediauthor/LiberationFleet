@@ -387,12 +387,14 @@ public static class NotificationBadgeBuilder
                 or NotificationKind.NewProposalReply or NotificationKind.CrewJoinSwitchOffer => "crewProposals",
             NotificationKind.NewFleetProposal or NotificationKind.FleetProposalAccepted
                 or NotificationKind.FleetProposalRejected or NotificationKind.NewFleetProposalReply => "fleetProposals",
-            NotificationKind.NewGifts or NotificationKind.NewCycle or NotificationKind.NewSeason
+            NotificationKind.NewGifts or NotificationKind.GiftReceivedByMe or NotificationKind.IntermediaryGift
+                or NotificationKind.NewCycle or NotificationKind.NewSeason
                 or NotificationKind.SurvivalThresholdsRefreshed
                 or NotificationKind.NewGiftComment or NotificationKind.NewGiftReply
                 or NotificationKind.GiftEntryLiked or NotificationKind.GiftCommentLiked => "crewGiftLog",
             NotificationKind.NewEmergencyRequest => "crewEmergency",
-            NotificationKind.NewFleetGifts => "fleetGiftLog",
+            NotificationKind.NewFleetGifts or NotificationKind.FleetGiftReceivedByMe
+                or NotificationKind.FleetIntermediaryGift => "fleetGiftLog",
             NotificationKind.NewRule or NotificationKind.RuleDeleted or NotificationKind.RuleEdited => "crewRules",
             NotificationKind.NewFleetRule or NotificationKind.FleetRuleDeleted
                 or NotificationKind.FleetRuleEdited => "fleetRules",

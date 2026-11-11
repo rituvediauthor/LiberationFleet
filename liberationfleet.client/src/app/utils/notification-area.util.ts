@@ -151,6 +151,8 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
     case 'NewFleetProposalReply':
       return 'fleetProposals';
     case 'NewGifts':
+    case 'GiftReceivedByMe':
+    case 'IntermediaryGift':
     case 'NewCycle':
     case 'NewSeason':
     case 'SurvivalThresholdsRefreshed':
@@ -162,6 +164,8 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
     case 'NewEmergencyRequest':
       return 'crewEmergency';
     case 'NewFleetGifts':
+    case 'FleetGiftReceivedByMe':
+    case 'FleetIntermediaryGift':
       return 'fleetGiftLog';
     case 'NewRule':
     case 'RuleDeleted':

@@ -182,11 +182,6 @@ public class GetCrewGiftLogQueryHandler(
             new Dictionary<int, int>(),
             "Gift log comment counts failed; continuing with zeros.",
             cancellationToken);
-        var seasonStartDates = await SafeEnrichAsync(
-            () => giftRepository.GetSeasonStartDatesForGiftsAsync(pageGiftIds, cancellationToken),
-            new Dictionary<int, DateTime?>(),
-            "Gift log season start lookup failed; treating entries as unlocked.",
-            cancellationToken);
 
         var currentSeasonStartDate = membership.Crew?.CurrentSeasonStartDate;
 
@@ -202,7 +197,8 @@ public class GetCrewGiftLogQueryHandler(
                     initiatedParents.TryGetValue(gift.InitiatedGiftId.Value, out initiatedParent);
                 }
 
-                seasonStartDates.TryGetValue(gift.Id, out var giftSeasonStartDate);
+                // SeasonCycle is already Included on the page query — avoid a redundant round-trip.
+                var giftSeasonStartDate = gift.SeasonCycle?.SeasonStartDate;
                 var isSeasonLocked = GiftSeasonAccess.IsSeasonLocked(
                     gift,
                     currentSeasonStartDate,

@@ -23,6 +23,7 @@ public class RecordFleetGiftsCommandHandler(
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
     IUserRepository userRepository,
     IMutualAidService mutualAidService,
+    ICrewContributionRefreshScheduler contributionRefreshScheduler,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<RecordFleetGiftsCommand, GiftOperationResponse>
 {
@@ -59,6 +60,7 @@ public class RecordFleetGiftsCommandHandler(
 
         Gift? lastSaved = null;
         var notifiedRecipients = new HashSet<int>();
+        var pendingNotify = new List<(int RecipientId, int? MiddlemanId, int GiftCrewId)>();
         var crewsNeedingContributionRefresh = new HashSet<int>();
 
         foreach (var item in request.Gifts)
@@ -169,40 +171,93 @@ public class RecordFleetGiftsCommandHandler(
             };
 
             await giftRepository.AddAsync(gift, cancellationToken);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
+            lastSaved = gift;
 
             if (item.IsCustom && countsTowardReception)
             {
+                // Reception apply needs a persisted gift id.
+                await unitOfWork.SaveChangesAsync(cancellationToken);
                 await mutualAidService.ApplyGiftReceptionAsync(gift, cancellationToken);
             }
 
-            lastSaved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
-
             if (notifiedRecipients.Add(item.RecipientId))
             {
-                var recipient = await userRepository.GetByIdWithProfileAsync(item.RecipientId, cancellationToken);
-                if (recipient is not null && !recipient.IsUnclaimedPlaceholder)
+                pendingNotify.Add((item.RecipientId, item.MiddlemanId, giftCrewId));
+            }
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (lastSaved is not null)
+        {
+            lastSaved = await giftRepository.GetByIdWithUsersAsync(lastSaved.Id, cancellationToken) ?? lastSaved;
+        }
+
+        if (pendingNotify.Count > 0)
+        {
+            var giver = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+            var giverName = UserDisplay.Name(giver);
+            var actionUrl = lastSaved is not null
+                ? $"/app/fleet/gift-log?highlightId={lastSaved.Id}"
+                : "/app/fleet/gift-log";
+
+            var fleetMemberIds = await fleetRepository.GetActiveFleetMemberUserIdsAsync(
+                fleet.Id,
+                cancellationToken);
+            var viewersById = (await userRepository.GetByIdsAsync(fleetMemberIds, cancellationToken))
+                .Where(u => !u.IsUnclaimedPlaceholder)
+                .ToDictionary(u => u.Id);
+
+            var recipientIds = pendingNotify.Select(p => p.RecipientId).Distinct().ToList();
+            var recipientsById = (await userRepository.GetByIdsAsync(recipientIds, cancellationToken))
+                .ToDictionary(u => u.Id);
+
+            var requests = new List<CreateNotificationRequest>();
+            foreach (var (recipientId, middlemanId, giftCrewId) in pendingNotify)
+            {
+                if (!recipientsById.TryGetValue(recipientId, out var recipient)
+                    || recipient.IsUnclaimedPlaceholder)
                 {
-                    var giver = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
-                    var giverName = UserDisplay.Name(giver);
-                    await notificationService.NotifyUserAsync(new CreateNotificationRequest
-                    {
-                        UserId = item.RecipientId,
-                        CrewId = giftCrewId,
-                        Kind = NotificationKind.NewFleetGifts,
-                        Title = NotificationCopy.ReceivedGift(giverName, fleet: true),
-                        Body = $"{giverName} recorded a gift for you in your fleet.",
-                        ActionUrl = $"/app/fleet/gift-log?highlightId={gift.Id}",
-                        RelatedEntityId = gift.Id,
-                        ActorUserId = userId
-                    }, cancellationToken);
+                    continue;
                 }
+
+                var recipientName = UserDisplay.Name(recipient);
+                foreach (var viewerId in viewersById.Keys)
+                {
+                    var kind = GiftEventNotificationKinds.ResolveForViewer(
+                        viewerId,
+                        userId,
+                        recipientId,
+                        middlemanId,
+                        fleet: true);
+                    if (kind is null)
+                    {
+                        continue;
+                    }
+
+                    requests.Add(GiftEventNotificationKinds.BuildRequest(
+                        kind.Value,
+                        viewerId,
+                        giftCrewId,
+                        giverName,
+                        recipientName,
+                        actionUrl,
+                        lastSaved?.Id,
+                        recipientId,
+                        userId,
+                        fleet: true));
+                }
+            }
+
+            if (requests.Count > 0)
+            {
+                await notificationService.NotifyUsersAsync(requests, cancellationToken);
             }
         }
 
         foreach (var crewId in crewsNeedingContributionRefresh)
         {
-            await mutualAidService.OnCrewContributionsChangedAsync(crewId, cancellationToken);
+            contributionRefreshScheduler.Schedule(crewId);
         }
 
         return new GiftOperationResponse

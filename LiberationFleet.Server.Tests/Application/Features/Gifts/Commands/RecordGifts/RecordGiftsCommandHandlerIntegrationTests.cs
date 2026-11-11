@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Features.Gifts.Commands.RecordGifts;
 using LiberationFleet.Server.Application.Features.Gifts.Commands.VerifyGift;
 using LiberationFleet.Server.Domain.Enums;
@@ -5,6 +6,7 @@ using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 using LiberationFleet.Server.Tests.TestHelpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace LiberationFleet.Server.Tests.Application.Features.Gifts.Commands.RecordGifts;
 
@@ -23,6 +25,7 @@ public class RecordGiftsCommandHandlerIntegrationTests
             new MutualAidRepository(fixture.Context),
             fixture.Service,
             HandlerTestFixture.CreateCustomGiftRecordingService(fixture.Context, fixture.Service),
+            new Mock<ICrewContributionRefreshScheduler>(MockBehavior.Loose).Object,
             HandlerTestFixture.CreateNotificationService(fixture.Context),
             fixture.Context,
             NullLogger<RecordGiftsCommandHandler>.Instance);

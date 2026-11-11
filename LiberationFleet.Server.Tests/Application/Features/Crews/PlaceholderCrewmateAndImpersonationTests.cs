@@ -1,4 +1,5 @@
 using LiberationFleet.Server.Application.Common;
+using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Features.Crewmates.Commands.AddPlaceholderCrewmate;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.Gifts;
@@ -10,6 +11,7 @@ using LiberationFleet.Server.Infrastructure.Persistence.Repositories;
 using LiberationFleet.Server.Tests.TestHelpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 
 namespace LiberationFleet.Server.Tests.Application.Features.Crews;
 
@@ -230,6 +232,7 @@ public class PlaceholderCrewmateAndImpersonationTests
             new MutualAidRepository(fixture.Context),
             fixture.Service,
             HandlerTestFixture.CreateCustomGiftRecordingService(fixture.Context, fixture.Service),
+            new Mock<ICrewContributionRefreshScheduler>(MockBehavior.Loose).Object,
             HandlerTestFixture.CreateNotificationService(fixture.Context),
             fixture.Context,
             NullLogger<RecordGiftsCommandHandler>.Instance);

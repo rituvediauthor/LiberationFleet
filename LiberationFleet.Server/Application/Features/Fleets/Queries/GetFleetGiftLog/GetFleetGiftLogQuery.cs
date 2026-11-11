@@ -177,11 +177,6 @@ public class GetFleetGiftLogQueryHandler(
             cancellationToken);
 
         var currentSeasonStartDate = membership.Crew?.CurrentSeasonStartDate;
-        var seasonStartDates = await SafeEnrichAsync(
-            () => giftRepository.GetSeasonStartDatesForGiftsAsync(pageGiftIds, cancellationToken),
-            new Dictionary<int, DateTime?>(),
-            "Fleet gift log season start lookup failed.",
-            cancellationToken);
 
         var items = new List<GiftLogEntryDto>(page.Items.Count);
         foreach (var gift in page.Items)
@@ -195,7 +190,8 @@ public class GetFleetGiftLogQueryHandler(
                     initiatedParents.TryGetValue(gift.InitiatedGiftId.Value, out initiatedParent);
                 }
 
-                seasonStartDates.TryGetValue(gift.Id, out var giftSeasonStartDate);
+                // SeasonCycle is already Included on the page query — avoid a redundant round-trip.
+                var giftSeasonStartDate = gift.SeasonCycle?.SeasonStartDate;
                 // Season lock only applies to the viewer's home-crew gifts.
                 var isSeasonLocked = gift.CrewId == membership.CrewId
                     && GiftSeasonAccess.IsSeasonLocked(gift, currentSeasonStartDate, giftSeasonStartDate);

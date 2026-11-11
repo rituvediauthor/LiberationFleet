@@ -64,5 +64,13 @@ public enum NotificationKind
     /// <summary>
     /// Join request approved while already in a crew — applicant must Switch or Stay.
     /// </summary>
-    CrewJoinSwitchOffer = 60
+    CrewJoinSwitchOffer = 60,
+    /// <summary>Crew gift recorded where the viewer is the recipient.</summary>
+    GiftReceivedByMe = 61,
+    /// <summary>Crew gift recorded where the viewer is the intermediary.</summary>
+    IntermediaryGift = 62,
+    /// <summary>Fleet gift recorded where the viewer is the recipient.</summary>
+    FleetGiftReceivedByMe = 63,
+    /// <summary>Fleet gift recorded where the viewer is the intermediary.</summary>
+    FleetIntermediaryGift = 64
 }

@@ -34,6 +34,7 @@ public class RecordGiftsCommandHandler(
     IMutualAidRepository mutualAidRepository,
     IMutualAidService mutualAidService,
     ICustomGiftRecordingService customGiftRecordingService,
+    ICrewContributionRefreshScheduler contributionRefreshScheduler,
     NotificationService notificationService,
     IUnitOfWork unitOfWork,
     ILogger<RecordGiftsCommandHandler> logger) : IRequestHandler<RecordGiftsCommand, GiftOperationResponse>
@@ -92,6 +93,15 @@ public class RecordGiftsCommandHandler(
         Gift? lastSaved = null;
         var notifiedRecipients = new HashSet<int>();
         var recordedCount = 0;
+        var pendingNotify = new List<(int RecipientId, int? MiddlemanId)>();
+        int? lastTrackedGiftId = null;
+        var validatedPlatformIds = new HashSet<int>();
+        var validatedRecipientIds = new HashSet<int>();
+        var validatedIntermediaryIds = new HashSet<int>();
+
+        // Shared across SplitAmountAgainstEntryNeedAsync calls in this batch.
+        Crew? crew = null;
+        IReadOnlyList<PendingReceptionCredit>? pendingCredits = null;
 
         foreach (var item in request.Gifts)
         {
@@ -100,9 +110,17 @@ public class RecordGiftsCommandHandler(
                 return new GiftOperationResponse { Success = false, Message = "Gift amounts must be greater than zero." };
             }
 
-            if (!await crewPaymentPlatformRepository.ExistsForCrewAsync(membership.CrewId, item.PaymentPlatformId, cancellationToken))
+            if (!validatedPlatformIds.Contains(item.PaymentPlatformId))
             {
-                return new GiftOperationResponse { Success = false, Message = "Invalid payment platform." };
+                if (!await crewPaymentPlatformRepository.ExistsForCrewAsync(
+                        membership.CrewId,
+                        item.PaymentPlatformId,
+                        cancellationToken))
+                {
+                    return new GiftOperationResponse { Success = false, Message = "Invalid payment platform." };
+                }
+
+                validatedPlatformIds.Add(item.PaymentPlatformId);
             }
 
             if (item.RecipientId == giverUserId)
@@ -115,19 +133,23 @@ public class RecordGiftsCommandHandler(
                 return new GiftOperationResponse { Success = false, Message = "Invalid intermediary selection." };
             }
 
-            if (!await membershipRepository.IsUserInCrewAsync(item.RecipientId, membership.CrewId, cancellationToken))
+            if (!validatedRecipientIds.Contains(item.RecipientId))
             {
-                return new GiftOperationResponse { Success = false, Message = "Recipient is not in your crew." };
+                if (!await membershipRepository.IsUserInCrewAsync(item.RecipientId, membership.CrewId, cancellationToken))
+                {
+                    return new GiftOperationResponse { Success = false, Message = "Recipient is not in your crew." };
+                }
+
+                validatedRecipientIds.Add(item.RecipientId);
             }
 
-            if (item.MiddlemanId.HasValue
-                && !await membershipRepository.IsUserInCrewAsync(item.MiddlemanId.Value, membership.CrewId, cancellationToken))
+            if (item.MiddlemanId.HasValue && !validatedIntermediaryIds.Contains(item.MiddlemanId.Value))
             {
-                return new GiftOperationResponse { Success = false, Message = "Intermediary is not in your crew." };
-            }
+                if (!await membershipRepository.IsUserInCrewAsync(item.MiddlemanId.Value, membership.CrewId, cancellationToken))
+                {
+                    return new GiftOperationResponse { Success = false, Message = "Intermediary is not in your crew." };
+                }
 
-            if (item.MiddlemanId.HasValue)
-            {
                 var intermediaryMembership = await membershipRepository.GetMembershipAsync(
                     item.MiddlemanId.Value,
                     membership.CrewId,
@@ -140,10 +162,18 @@ public class RecordGiftsCommandHandler(
                         Message = "Selected intermediary does not hold the Intermediary role."
                     };
                 }
+
+                validatedIntermediaryIds.Add(item.MiddlemanId.Value);
             }
 
             if (item.IsCustom)
             {
+                // Custom path has its own SaveChanges / reception apply.
+                if (recordedCount > 0 && lastTrackedGiftId is null)
+                {
+                    await unitOfWork.SaveChangesAsync(cancellationToken);
+                }
+
                 var category = CustomGiftRecordingService.ParseCategory(item.EntryType);
                 var (applied, other) = await customGiftRecordingService.RecordAsync(
                     membership.CrewId,
@@ -163,9 +193,8 @@ public class RecordGiftsCommandHandler(
 
                 recordedCount += (applied is not null ? 1 : 0) + (other is not null ? 1 : 0);
                 var highlight = other ?? applied;
-                lastSaved = highlight is not null
-                    ? await giftRepository.GetByIdWithUsersAsync(highlight.Id, cancellationToken)
-                    : null;
+                lastTrackedGiftId = highlight?.Id;
+                lastSaved = null;
             }
             else
             {
@@ -202,6 +231,15 @@ public class RecordGiftsCommandHandler(
                     membership.CrewId,
                     item,
                     isRepresentativeGift,
+                    async () =>
+                    {
+                        crew ??= await mutualAidRepository.GetCrewAsync(membership.CrewId, cancellationToken);
+                        pendingCredits ??= await giftRepository.GetPendingReceptionCreditsAsync(
+                            membership.CrewId,
+                            crew?.CurrentSeasonStartDate,
+                            cancellationToken);
+                        return pendingCredits!;
+                    },
                     cancellationToken);
 
                 if (applyAmount > 0m)
@@ -211,7 +249,6 @@ public class RecordGiftsCommandHandler(
                     {
                         category = CustomGiftCategory.SurvivalThreshold;
                     }
-                    // Cycle / payback / emergency segment categories are derived from SeasonCycle at map time.
 
                     var gift = new Gift
                     {
@@ -238,14 +275,13 @@ public class RecordGiftsCommandHandler(
                     _ = isCatchUp;
 
                     await giftRepository.AddAsync(gift, cancellationToken);
-                    await unitOfWork.SaveChangesAsync(cancellationToken);
                     recordedCount++;
-                    lastSaved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
+                    lastTrackedGiftId = null; // assigned after batch save
+                    lastSaved = gift;
                 }
 
                 if (overflowAmount > 0m)
                 {
-                    // Excess over the entry's remaining need: logged only, burns nothing.
                     var overflowGift = new Gift
                     {
                         CrewId = membership.CrewId,
@@ -267,10 +303,9 @@ public class RecordGiftsCommandHandler(
                         CreatedAt = DateTime.UtcNow
                     };
                     await giftRepository.AddAsync(overflowGift, cancellationToken);
-                    await unitOfWork.SaveChangesAsync(cancellationToken);
                     recordedCount++;
-                    lastSaved = await giftRepository.GetByIdWithUsersAsync(overflowGift.Id, cancellationToken)
-                        ?? lastSaved;
+                    lastTrackedGiftId = null;
+                    lastSaved = overflowGift;
                 }
 
                 if (applyAmount <= 0m && overflowAmount <= 0m)
@@ -285,51 +320,96 @@ public class RecordGiftsCommandHandler(
 
             if (notifiedRecipients.Add(item.RecipientId))
             {
-                try
-                {
-                    var recipient = await userRepository.GetByIdWithProfileAsync(item.RecipientId, cancellationToken);
-                    if (recipient is not null && !recipient.IsUnclaimedPlaceholder)
-                    {
-                        var giver = await userRepository.GetByIdWithProfileAsync(giverUserId, cancellationToken);
-                        var giverName = UserDisplay.Name(giver);
-                        await notificationService.NotifyUserAsync(new CreateNotificationRequest
-                        {
-                            UserId = item.RecipientId,
-                            CrewId = membership.CrewId,
-                            Kind = NotificationKind.NewGifts,
-                            Title = NotificationCopy.ReceivedGift(giverName),
-                            Body = $"{giverName} recorded a gift for you in your crew.",
-                            ActionUrl = lastSaved is not null
-                                ? $"/app/crew/gift-log?highlightId={lastSaved.Id}"
-                                : "/app/crew/gift-log",
-                            RelatedEntityId = lastSaved?.Id,
-                            ActorUserId = giverUserId
-                        }, cancellationToken);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(
-                        ex,
-                        "Failed to notify recipient {RecipientId} after recording gifts in crew {CrewId}",
-                        item.RecipientId,
-                        membership.CrewId);
-                }
+                pendingNotify.Add((item.RecipientId, item.MiddlemanId));
             }
         }
 
-        try
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
+        if (lastSaved is not null && lastSaved.Id > 0)
         {
-            await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
+            lastTrackedGiftId = lastSaved.Id;
         }
-        catch (Exception ex)
+
+        if (lastTrackedGiftId is int highlightId)
         {
-            // Gifts are already saved; do not fail the request after success.
-            logger.LogError(
-                ex,
-                "Post-record contribution refresh failed for crew {CrewId}",
-                membership.CrewId);
+            lastSaved = await giftRepository.GetByIdWithUsersAsync(highlightId, cancellationToken) ?? lastSaved;
         }
+
+        if (pendingNotify.Count > 0)
+        {
+            try
+            {
+                var giver = await userRepository.GetByIdWithProfileAsync(giverUserId, cancellationToken);
+                var giverName = UserDisplay.Name(giver);
+                var actionUrl = lastSaved is not null
+                    ? $"/app/crew/gift-log?highlightId={lastSaved.Id}"
+                    : "/app/crew/gift-log";
+
+                var members = await membershipRepository.GetActiveMembersByCrewIdAsync(
+                    membership.CrewId,
+                    cancellationToken);
+                var recipientIds = pendingNotify.Select(p => p.RecipientId).Distinct().ToList();
+                var recipientsById = (await userRepository.GetByIdsAsync(recipientIds, cancellationToken))
+                    .ToDictionary(u => u.Id);
+
+                var requests = new List<CreateNotificationRequest>();
+                foreach (var (recipientId, middlemanId) in pendingNotify)
+                {
+                    if (!recipientsById.TryGetValue(recipientId, out var recipient)
+                        || recipient.IsUnclaimedPlaceholder)
+                    {
+                        continue;
+                    }
+
+                    var recipientName = UserDisplay.Name(recipient);
+                    foreach (var member in members)
+                    {
+                        if (member.User is null || member.User.IsUnclaimedPlaceholder)
+                        {
+                            continue;
+                        }
+
+                        var kind = GiftEventNotificationKinds.ResolveForViewer(
+                            member.UserId,
+                            giverUserId,
+                            recipientId,
+                            middlemanId,
+                            fleet: false);
+                        if (kind is null)
+                        {
+                            continue;
+                        }
+
+                        requests.Add(GiftEventNotificationKinds.BuildRequest(
+                            kind.Value,
+                            member.UserId,
+                            membership.CrewId,
+                            giverName,
+                            recipientName,
+                            actionUrl,
+                            lastSaved?.Id,
+                            recipientId,
+                            giverUserId,
+                            fleet: false));
+                    }
+                }
+
+                if (requests.Count > 0)
+                {
+                    await notificationService.NotifyUsersAsync(requests, cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Failed to notify crew after recording gifts in crew {CrewId}",
+                    membership.CrewId);
+            }
+        }
+
+        contributionRefreshScheduler.Schedule(membership.CrewId);
 
         return new GiftOperationResponse
         {
@@ -347,6 +427,7 @@ public class RecordGiftsCommandHandler(
         int crewId,
         GiftRecordItem item,
         bool isRepresentativeGift,
+        Func<Task<IReadOnlyList<PendingReceptionCredit>>> loadPendingCredits,
         CancellationToken cancellationToken)
     {
         if (item.Amount <= 0m || isRepresentativeGift)
@@ -367,11 +448,7 @@ public class RecordGiftsCommandHandler(
             }
 
             var room = Math.Max(0m, cycle.CycleCapAtStart - cycle.CycleReceived);
-            var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
-            var pending = await giftRepository.GetPendingReceptionCreditsAsync(
-                crewId,
-                crew?.CurrentSeasonStartDate,
-                cancellationToken);
+            var pending = await loadPendingCredits();
             var pendingForCycle = pending
                 .Where(p => p.SeasonCycleId == cycle.Id)
                 .Sum(p => p.Amount);
@@ -388,11 +465,7 @@ public class RecordGiftsCommandHandler(
             }
 
             var room = Math.Max(0m, threshold.ThresholdAmount - threshold.ReceivedAmount);
-            var crew = await mutualAidRepository.GetCrewAsync(crewId, cancellationToken);
-            var pending = await giftRepository.GetPendingReceptionCreditsAsync(
-                crewId,
-                crew?.CurrentSeasonStartDate,
-                cancellationToken);
+            var pending = await loadPendingCredits();
             var pendingForThreshold = pending
                 .Where(p => p.MonthlySurvivalThresholdId == threshold.Id)
                 .Sum(p => p.Amount);

@@ -72,6 +72,12 @@ public static class NotificationCopy
     public static string ReceivedGift(string actorName, bool fleet = false) =>
         $"{ActorOrFallback(actorName)} recorded a {(fleet ? "fleet " : "")}gift for you";
 
+    public static string GiftGiven(string actorName, string recipientName, bool fleet = false) =>
+        $"{ActorOrFallback(actorName)} recorded a {(fleet ? "fleet " : "")}gift for {ActorOrFallback(recipientName)}";
+
+    public static string IntermediaryGift(string actorName, string recipientName, bool fleet = false) =>
+        $"{ActorOrFallback(actorName)} recorded a {(fleet ? "fleet " : "")}gift for {ActorOrFallback(recipientName)} with you as intermediary";
+
     public static string SentFriendRequest(string actorName) =>
         $"{ActorOrFallback(actorName)} sent you a friend request";
 

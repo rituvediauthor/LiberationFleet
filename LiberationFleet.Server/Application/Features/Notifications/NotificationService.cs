@@ -249,7 +249,9 @@ public class NotificationService(
         NotificationKind.NewProposal => "New proposal",
         NotificationKind.ProposalRejected => "Proposal rejected",
         NotificationKind.ProposalAccepted => "Proposal accepted",
-        NotificationKind.NewGifts => "New gift(s)",
+        NotificationKind.NewGifts => "Gifts given",
+        NotificationKind.GiftReceivedByMe => "Gifts given to me",
+        NotificationKind.IntermediaryGift => "Intermediary gifts",
         NotificationKind.NewCycle => "New cycle",
         NotificationKind.NewSeason => "New season",
         NotificationKind.SurvivalThresholdsRefreshed => "Survival thresholds refreshed",
@@ -274,7 +276,9 @@ public class NotificationService(
         NotificationKind.LibraryUnitBrokenReported => "Library unit reported broken",
         NotificationKind.LibraryUnitBrokenConfirmed => "Library unit confirmed broken",
         NotificationKind.LibraryUnitReportedFixed => "Library unit reported fixed",
-        NotificationKind.NewFleetGifts => "New fleet gift(s)",
+        NotificationKind.NewFleetGifts => "Fleet gifts given",
+        NotificationKind.FleetGiftReceivedByMe => "Fleet gifts given to me",
+        NotificationKind.FleetIntermediaryGift => "Fleet intermediary gifts",
         NotificationKind.NewFleetProposal => "New fleet proposal",
         NotificationKind.FleetSettingChanged => "Fleet setting changed",
         NotificationKind.NewFleetChatMessage => "New fleet chat message",
@@ -310,6 +314,8 @@ public class NotificationService(
     public static string GetKindCategory(NotificationKind kind) => kind switch
     {
         NotificationKind.NewFleetGifts
+            or NotificationKind.FleetGiftReceivedByMe
+            or NotificationKind.FleetIntermediaryGift
             or NotificationKind.NewFleetProposal
             or NotificationKind.FleetSettingChanged
             or NotificationKind.NewFleetChatMessage

@@ -367,7 +367,11 @@ export class NotificationHubService implements OnDestroy {
       57: 'NewDirectMessage',
       58: 'ChatMessageLiked',
       59: 'LibraryTaskScheduleChanged',
-      60: 'CrewJoinSwitchOffer'
+      60: 'CrewJoinSwitchOffer',
+      61: 'GiftReceivedByMe',
+      62: 'IntermediaryGift',
+      63: 'FleetGiftReceivedByMe',
+      64: 'FleetIntermediaryGift'
     };
     return map[value] ?? String(value);
   }

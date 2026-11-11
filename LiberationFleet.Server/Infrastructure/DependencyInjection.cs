@@ -87,6 +87,8 @@ public static class DependencyInjection
         services.AddScoped<Application.Services.IMediaDeepFreezeService, Application.Services.MediaDeepFreezeService>();
         services.AddScoped<Application.Services.IDonationAcknowledgmentEmailService, Application.Services.DonationAcknowledgmentEmailService>();
         services.AddSingleton<Background.ActivityTriggeredBackgroundJobs>();
+        services.AddSingleton<Application.Common.Interfaces.ICrewContributionRefreshScheduler>(sp =>
+            sp.GetRequiredService<Background.ActivityTriggeredBackgroundJobs>());
         services.AddSingleton<Application.Common.Interfaces.IUserPresenceService, Services.UserPresenceService>();
         services.AddHostedService<Background.ContentReportRetentionHostedService>();
         services.AddHostedService<Background.MediaDeepFreezeHostedService>();
