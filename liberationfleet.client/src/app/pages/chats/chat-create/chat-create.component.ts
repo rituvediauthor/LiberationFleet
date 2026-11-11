@@ -149,6 +149,7 @@ export class ChatCreateComponent implements OnInit {
       this.chatService.createRoom({
         nonce: encrypted.nonce,
         ciphertext: encrypted.ciphertext,
+        keyVersion: encrypted.keyVersion,
         roomType: (this.isFleetScope ? 'Text' : value.roomType) as ChatRoomType,
         purpose,
         plaintextName: name,

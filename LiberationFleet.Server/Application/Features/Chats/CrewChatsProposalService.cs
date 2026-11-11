@@ -106,10 +106,13 @@ public class CrewChatsProposalService(
         int? roomId,
         string purpose,
         ChatRoomType roomType,
-        string plaintextName,
+        string? nameNonce,
+        string? nameCiphertext,
+        int keyVersion,
         bool isAdultContent,
         CancellationToken cancellationToken = default,
-        string? orderedRoomIdsJson = null)
+        string? orderedRoomIdsJson = null,
+        string? plaintextName = null)
     {
         var utcNow = DateTime.UtcNow;
         var proposal = new Proposal
@@ -133,9 +136,11 @@ public class CrewChatsProposalService(
             Description = proposalDescription,
             Purpose = purpose.Trim(),
             RoomType = roomType,
-            PlaintextName = plaintextName.Trim(),
+            NameNonce = nameNonce,
+            NameCiphertext = nameCiphertext,
+            PlaintextName = string.IsNullOrWhiteSpace(plaintextName) ? null : plaintextName.Trim(),
             OrderedRoomIdsJson = orderedRoomIdsJson,
-            KeyVersion = 1,
+            KeyVersion = keyVersion <= 0 ? 1 : keyVersion,
             IsAdultContent = isAdultContent
         }, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -311,7 +316,9 @@ public class CrewChatsProposalService(
         DateTime utcNow,
         CancellationToken cancellationToken)
     {
-        if (!proposal.FleetId.HasValue || string.IsNullOrWhiteSpace(change.PlaintextName))
+        if (!proposal.FleetId.HasValue
+            || string.IsNullOrWhiteSpace(change.NameNonce)
+            || string.IsNullOrWhiteSpace(change.NameCiphertext))
         {
             return false;
         }
@@ -319,7 +326,7 @@ public class CrewChatsProposalService(
         var room = new ChatRoom
         {
             FleetId = proposal.FleetId.Value,
-            Name = change.PlaintextName.Trim(),
+            Name = string.Empty,
             Purpose = change.Purpose,
             RoomType = change.RoomType,
             CreatedByUserId = proposal.AuthorUserId,
@@ -332,12 +339,30 @@ public class CrewChatsProposalService(
         change.IsApplied = true;
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+        {
+            ContentType = EncryptedContentType.ChatRoomName,
+            ResourceId = room.Id.ToString(),
+            FleetId = proposal.FleetId.Value,
+            AuthorUserId = proposal.AuthorUserId,
+            KeyVersion = change.KeyVersion,
+            Nonce = change.NameNonce.Trim(),
+            Ciphertext = change.NameCiphertext.Trim(),
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow
+        }, cancellationToken);
+
         change.RoomId = room.Id;
 
         var savedRoom = await chatRepository.GetRoomByIdWithAuthorAsync(room.Id, cancellationToken);
+        var nameEnvelope = await cryptoRepository.GetEnvelopeAsync(
+            EncryptedContentType.ChatRoomName,
+            room.Id.ToString(),
+            cancellationToken);
+
         if (savedRoom is not null)
         {
-            var dto = ChatMapper.MapListItem(savedRoom, nameEnvelope: null);
+            var dto = ChatMapper.MapListItem(savedRoom, nameEnvelope);
             await chatRealtimeNotifier.NotifyFleetRoomCreatedAsync(proposal.FleetId.Value, dto, cancellationToken);
         }
 
@@ -385,20 +410,35 @@ public class CrewChatsProposalService(
         DateTime utcNow,
         CancellationToken cancellationToken)
     {
-        if (!change.RoomId.HasValue || string.IsNullOrWhiteSpace(change.PlaintextName))
+        if (!change.RoomId.HasValue
+            || string.IsNullOrWhiteSpace(change.NameNonce)
+            || string.IsNullOrWhiteSpace(change.NameCiphertext))
         {
             return false;
         }
 
         var room = await chatRepository.GetRoomByIdAsync(change.RoomId.Value, cancellationToken);
-        if (room is null)
+        if (room is null || !room.FleetId.HasValue)
         {
             return false;
         }
 
-        room.Name = change.PlaintextName.Trim();
+        room.Name = string.Empty;
         room.Purpose = change.Purpose;
         room.LastActivityAt = utcNow;
+
+        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
+        {
+            ContentType = EncryptedContentType.ChatRoomName,
+            ResourceId = room.Id.ToString(),
+            FleetId = room.FleetId.Value,
+            AuthorUserId = room.CreatedByUserId,
+            KeyVersion = change.KeyVersion,
+            Nonce = change.NameNonce.Trim(),
+            Ciphertext = change.NameCiphertext.Trim(),
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow
+        }, cancellationToken);
         return true;
     }
 

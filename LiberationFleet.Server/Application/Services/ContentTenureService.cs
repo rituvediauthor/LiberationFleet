@@ -15,10 +15,50 @@ public class ContentTenureService(
         return ContentTenureCalculator.GetTenureDays(tenure, DateTime.UtcNow);
     }
 
+    public async Task<IReadOnlyDictionary<int, int>> GetCrewTenureDaysForUsersAsync(
+        IReadOnlyCollection<int> userIds,
+        int crewId,
+        CancellationToken cancellationToken = default)
+    {
+        var utcNow = DateTime.UtcNow;
+        var tenures = await tenureRepository.GetCrewTenuresForUsersAsync(userIds, crewId, cancellationToken);
+        var byUser = tenures.ToDictionary(
+            t => t.UserId,
+            t => ContentTenureCalculator.GetTenureDays(t, utcNow));
+
+        var result = new Dictionary<int, int>(userIds.Count);
+        foreach (var userId in userIds)
+        {
+            result[userId] = byUser.GetValueOrDefault(userId);
+        }
+
+        return result;
+    }
+
     public async Task<int> GetFleetTenureDaysAsync(int userId, int fleetId, CancellationToken cancellationToken = default)
     {
         var tenure = await tenureRepository.GetFleetTenureAsync(userId, fleetId, cancellationToken);
         return ContentTenureCalculator.GetTenureDays(tenure, DateTime.UtcNow);
+    }
+
+    public async Task<IReadOnlyDictionary<int, int>> GetFleetTenureDaysForUsersAsync(
+        IReadOnlyCollection<int> userIds,
+        int fleetId,
+        CancellationToken cancellationToken = default)
+    {
+        var utcNow = DateTime.UtcNow;
+        var tenures = await tenureRepository.GetFleetTenuresForUsersAsync(userIds, fleetId, cancellationToken);
+        var byUser = tenures.ToDictionary(
+            t => t.UserId,
+            t => ContentTenureCalculator.GetTenureDays(t, utcNow));
+
+        var result = new Dictionary<int, int>(userIds.Count);
+        foreach (var userId in userIds)
+        {
+            result[userId] = byUser.GetValueOrDefault(userId);
+        }
+
+        return result;
     }
 
     public async Task OnJoinedCrewAsync(int userId, int crewId, CancellationToken cancellationToken = default)

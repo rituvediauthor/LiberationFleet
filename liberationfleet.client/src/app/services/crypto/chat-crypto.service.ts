@@ -52,9 +52,16 @@ export class ChatCryptoService {
     return this.decryptRoomWithFallback(room, scope);
   }
 
-  async encryptRoomName(scope: ChatCryptoScope, name: string): Promise<{ nonce: string; ciphertext: string }> {
+  async encryptRoomName(
+    scope: ChatCryptoScope,
+    name: string
+  ): Promise<{ nonce: string; ciphertext: string; keyVersion: number }> {
     const scopeKey = await this.resolveScopeKey(scope);
-    return this.cryptoService.encryptJson<ChatRoomNamePayload>(scopeKey, { name });
+    const encrypted = await this.cryptoService.encryptJson<ChatRoomNamePayload>(scopeKey, { name });
+    const keyVersion = scope.fleetId
+      ? this.cryptoSession.getFleetKeyVersion(scope.fleetId) ?? 1
+      : this.cryptoSession.getCrewKeyVersion(scope.crewId!) ?? 1;
+    return { ...encrypted, keyVersion };
   }
 
   async decryptMessages(messages: ChatMessage[], scope: ChatCryptoScope): Promise<ChatMessage[]> {
@@ -124,22 +131,32 @@ export class ChatCryptoService {
     authorDisplayName: string,
     newAttachments: PendingAttachment[] = [],
     existingAttachments: ProposalAttachment[] = []
-  ): Promise<{ nonce: string; ciphertext: string }> {
+  ): Promise<{ nonce: string; ciphertext: string; keyVersion: number }> {
     if (scope.fleetId) {
-      return this.proposalCrypto.encryptCommentPayload(
+      await this.cryptoSession.ensureFleetKeyReady(scope.fleetId);
+      const encrypted = await this.proposalCrypto.encryptCommentPayload(
         { fleetId: scope.fleetId },
         { body, authorDisplayName },
         newAttachments,
         existingAttachments
       );
+      return {
+        ...encrypted,
+        keyVersion: this.cryptoSession.getFleetKeyVersion(scope.fleetId) ?? 1
+      };
     }
 
-    return this.proposalCrypto.encryptCommentPayload(
+    await this.cryptoSession.ensureCrewKeyReady(scope.crewId!);
+    const encrypted = await this.proposalCrypto.encryptCommentPayload(
       scope.crewId!,
       { body, authorDisplayName },
       newAttachments,
       existingAttachments
     );
+    return {
+      ...encrypted,
+      keyVersion: this.cryptoSession.getCrewKeyVersion(scope.crewId!) ?? 1
+    };
   }
 
   private async warmScopeKeys(scope: ChatCryptoScope): Promise<void> {

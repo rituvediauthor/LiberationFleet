@@ -87,7 +87,8 @@ export class ChatService {
       nonce: payload.nonce ?? '',
       ciphertext: payload.ciphertext ?? '',
       keyVersion: payload.keyVersion ?? 1,
-      body: payload.body || payload.notificationPreview || null,
+      // Body is never persisted for chat messages; keep null so plaintext cannot leak into ChatRoomMessages.
+      body: null,
       notificationPreview: payload.notificationPreview || payload.body || null,
       mentionedUserIds: payload.mentionedUserIds ?? [],
       isAnonymous: !!payload.isAnonymous
@@ -103,7 +104,7 @@ export class ChatService {
       nonce: payload.nonce ?? '',
       ciphertext: payload.ciphertext ?? '',
       keyVersion: payload.keyVersion ?? 1,
-      body: payload.body ?? null,
+      body: null,
       mentionedUserIds: payload.mentionedUserIds ?? []
     });
   }

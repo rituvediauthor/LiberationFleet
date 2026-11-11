@@ -51,14 +51,7 @@ public class UpdateChatMessageCommandHandler(
 
         var isFleetRoom = !room.CrewId.HasValue && room.FleetId.HasValue;
         var hasEncryptedPayload = !string.IsNullOrWhiteSpace(request.Nonce) && !string.IsNullOrWhiteSpace(request.Ciphertext);
-        if (isFleetRoom)
-        {
-            if (!hasEncryptedPayload && string.IsNullOrWhiteSpace(request.Body))
-            {
-                return new ChatOperationResponse { Success = false, Message = "Message content is required." };
-            }
-        }
-        else if (!hasEncryptedPayload)
+        if (!hasEncryptedPayload)
         {
             return new ChatOperationResponse { Success = false, Message = "Encrypted message content is required." };
         }
@@ -76,38 +69,6 @@ public class UpdateChatMessageCommandHandler(
 
         var utcNow = DateTime.UtcNow;
 
-        if (isFleetRoom && !hasEncryptedPayload)
-        {
-            message.Body = request.Body!.Trim();
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-
-            var fleetMessageDto = ChatMapper.MapMessage(message, envelope: null, viewerUserId: null, allowKick: room.CrewId.HasValue);
-            await chatRealtimeNotifier.NotifyMessageUpdatedAsync(membership.CrewId, room.Id, fleetMessageDto, cancellationToken);
-
-            await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
-            {
-                CrewId = membership.CrewId,
-                FleetId = room.FleetId,
-                AuthorUserId = userId,
-                OmitNotificationActorIdentity = message.IsAnonymous,
-                NotificationAuthorName = message.IsAnonymous ? NotificationActorPrivacy.AnonymousActorName : null,
-                ContentType = MentionedContentType.ChatRoomMessage,
-                ResourceId = message.Id,
-                ParentResourceId = room.Id,
-                ActionUrl = $"/app/fleet/chats/{room.Id}?messageId={message.Id}",
-                MentionedUserIds = MentionRequestHelper.Normalize(request.MentionedUserIds),
-                IsUpdate = true,
-                LocationLabel = NotificationCopy.ChatRoomLabel(room.Name)
-            }, cancellationToken);
-
-            return new ChatOperationResponse
-            {
-                Success = true,
-                Message = "Message updated.",
-                MessageId = message.Id
-            };
-        }
-
         await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
         {
             ContentType = EncryptedContentType.ChatRoomMessage,
@@ -122,11 +83,7 @@ public class UpdateChatMessageCommandHandler(
             UpdatedAt = utcNow
         }, cancellationToken);
 
-        if (isFleetRoom)
-        {
-            message.Body = null;
-        }
-
+        message.Body = null;
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var envelope = await cryptoRepository.GetEnvelopeAsync(

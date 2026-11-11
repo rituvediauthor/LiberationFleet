@@ -160,9 +160,12 @@ public class DeleteChatRoomCommandHandler(
                 room.Id,
                 room.Purpose,
                 room.RoomType,
-                request.PlaintextName,
+                nameNonce: null,
+                nameCiphertext: null,
+                keyVersion: 1,
                 room.IsAdultContent,
-                cancellationToken);
+                cancellationToken,
+                plaintextName: request.PlaintextName);
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
 

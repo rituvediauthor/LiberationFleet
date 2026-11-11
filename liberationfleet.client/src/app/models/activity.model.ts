@@ -29,6 +29,7 @@ export interface UserActivityItem {
   detail?: string | null;
   createdAt: string;
   crewId: number;
+  fleetId?: number | null;
   resourceId: number;
   parentResourceId?: number | null;
   relatedUserId?: number | null;

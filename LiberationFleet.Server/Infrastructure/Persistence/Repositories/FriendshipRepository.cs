@@ -22,6 +22,7 @@ public class FriendshipRepository : IFriendshipRepository
 
     public async Task<IReadOnlyList<Friendship>> GetForUserAsync(int userId, CancellationToken cancellationToken = default) =>
         await _context.Friendships
+            .AsNoTracking()
             .Where(f => f.RequesterUserId == userId || f.AddresseeUserId == userId)
             .ToListAsync(cancellationToken);
 

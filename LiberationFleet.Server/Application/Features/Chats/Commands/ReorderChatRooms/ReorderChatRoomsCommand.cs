@@ -148,7 +148,9 @@ public class ReorderChatRoomsCommandHandler(
                     roomId: null,
                     purpose: string.Empty,
                     roomType: ChatRoomType.Text,
-                    plaintextName: string.Empty,
+                    nameNonce: null,
+                    nameCiphertext: null,
+                    keyVersion: 1,
                     isAdultContent: false,
                     cancellationToken: cancellationToken,
                     orderedRoomIdsJson: orderedRoomIdsJson)

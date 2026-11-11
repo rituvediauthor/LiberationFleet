@@ -169,6 +169,7 @@ export class ChatEditComponent implements OnInit {
       this.chatService.updateRoom(this.roomId, {
         nonce: encrypted.nonce,
         ciphertext: encrypted.ciphertext,
+        keyVersion: encrypted.keyVersion,
         roomType: value.roomType as ChatRoomType,
         purpose,
         plaintextName: name,

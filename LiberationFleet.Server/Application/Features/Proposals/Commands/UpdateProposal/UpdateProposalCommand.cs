@@ -19,6 +19,7 @@ public record UpdateProposalCommand(
 public class UpdateProposalCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
+    IFleetRepository fleetRepository,
     IProposalRepository proposalRepository,
     ICryptoRepository cryptoRepository,
     ContentMentionService contentMentionService,
@@ -32,6 +33,12 @@ public class UpdateProposalCommandHandler(
         }
 
         var userId = currentUser.UserId.Value;
+        var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
+        if (membership is null)
+        {
+            return new ProposalOperationResponse { Success = false, Message = "You are not in a crew." };
+        }
+
         var proposal = await proposalRepository.GetByIdAsync(request.ProposalId, cancellationToken);
         if (proposal is null)
         {
@@ -43,18 +50,26 @@ public class UpdateProposalCommandHandler(
             return new ProposalOperationResponse { Success = false, Message = "Only the author can edit this proposal." };
         }
 
-        if (!await membershipRepository.IsUserInCrewAsync(userId, proposal.CrewId!.Value, cancellationToken))
+        var (allowed, accessError) = await ProposalEligibility.CanUserAccessProposalAsync(
+            userId,
+            proposal,
+            membershipRepository,
+            fleetRepository,
+            cancellationToken);
+        if (!allowed)
         {
-            return new ProposalOperationResponse { Success = false, Message = "You are not in this crew." };
+            return new ProposalOperationResponse { Success = false, Message = accessError ?? "Access denied." };
         }
 
+        var isFleetProposal = proposal.FleetId.HasValue;
         proposal.LastActivityAt = DateTime.UtcNow;
 
         await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
         {
             ContentType = EncryptedContentType.Proposal,
             ResourceId = proposal.Id.ToString(),
-            CrewId = proposal.CrewId!.Value,
+            CrewId = isFleetProposal ? null : proposal.CrewId,
+            FleetId = isFleetProposal ? proposal.FleetId : null,
             AuthorUserId = userId,
             KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
             Nonce = request.Nonce.Trim(),
@@ -67,7 +82,8 @@ public class UpdateProposalCommandHandler(
 
         await contentMentionService.ApplyMentionsAsync(new ContentMentionContext
         {
-            CrewId = proposal.CrewId!.Value,
+            CrewId = membership.CrewId,
+            FleetId = proposal.FleetId,
             AuthorUserId = userId,
             OmitNotificationActorIdentity = true,
             NotificationAuthorName = ProposalMapper.AnonymousAuthor,

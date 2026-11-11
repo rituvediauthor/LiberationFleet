@@ -21,9 +21,8 @@ public class ChatRoomMessage
     public bool IsAnonymous { get; set; }
 
     /// <summary>
-    /// Plaintext body used for fleet chat rooms, which span multiple crews and therefore
-    /// cannot use a single crew's E2E encryption key. Crew room messages keep using
-    /// encrypted envelopes and leave this null.
+    /// Unused. Both crew and fleet chat messages store content in encrypted envelopes;
+    /// this column is always left null.
     /// </summary>
     public string? Body { get; set; }
 

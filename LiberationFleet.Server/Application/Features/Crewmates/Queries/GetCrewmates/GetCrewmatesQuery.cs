@@ -41,6 +41,7 @@ public class GetCrewmatesQueryHandler(
         var members = await membershipRepository.GetActiveMembersByCrewIdAsync(membership.CrewId, cancellationToken);
         var avatarAllowed = await crewAvatarVisibility.GetUsersAllowedToShowCrewAvatarAsync(
             membership.CrewId,
+            members,
             cancellationToken);
         var friendships = await friendshipRepository.GetForUserAsync(viewerId, cancellationToken);
         var friendshipByUserId = friendships

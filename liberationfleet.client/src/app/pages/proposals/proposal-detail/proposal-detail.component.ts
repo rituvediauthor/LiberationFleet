@@ -585,7 +585,8 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
   }
 
   async saveEdit() {
-    if (!this.proposal?.canEdit || this.savingEdit || this.crewId <= 0) {
+    const cryptoScope = this.cryptoScope;
+    if (!this.proposal?.canEdit || this.savingEdit || !cryptoScope) {
       return;
     }
     if (!pendingAttachmentsAllowSubmit(this.newEditAttachments)) {
@@ -603,7 +604,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
     this.savingEdit = true;
     try {
       const encrypted = await this.proposalCrypto.encryptProposalPayload(
-        this.crewId,
+        cryptoScope,
         {
           title,
           description,

@@ -163,6 +163,11 @@ public class UpdateChatRoomCommandHandler(
         ChatRoom room,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
+        {
+            return new ChatOperationResponse { Success = false, Message = "Encrypted chat room name is required." };
+        }
+
         var membership = await membershipRepository.GetActiveMembershipAsync(userId, cancellationToken);
         if (membership is null)
         {
@@ -206,9 +211,12 @@ public class UpdateChatRoomCommandHandler(
                 room.Id,
                 request.Purpose,
                 room.RoomType,
-                request.PlaintextName,
+                request.Nonce.Trim(),
+                request.Ciphertext.Trim(),
+                request.KeyVersion,
                 room.IsAdultContent,
-                cancellationToken);
+                cancellationToken,
+                plaintextName: request.PlaintextName);
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -221,27 +229,23 @@ public class UpdateChatRoomCommandHandler(
             };
         }
 
+        var utcNow = DateTime.UtcNow;
         room.Purpose = request.Purpose.Trim();
-        room.Name = request.PlaintextName.Trim();
-        room.LastActivityAt = DateTime.UtcNow;
+        room.Name = string.Empty;
+        room.LastActivityAt = utcNow;
 
-        if (!string.IsNullOrWhiteSpace(request.Nonce) && !string.IsNullOrWhiteSpace(request.Ciphertext))
+        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
         {
-            var utcNow = DateTime.UtcNow;
-            room.Name = string.Empty;
-            await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
-            {
-                ContentType = EncryptedContentType.ChatRoomName,
-                ResourceId = room.Id.ToString(),
-                FleetId = fleet.Id,
-                AuthorUserId = userId,
-                KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
-                Nonce = request.Nonce.Trim(),
-                Ciphertext = request.Ciphertext.Trim(),
-                CreatedAt = utcNow,
-                UpdatedAt = utcNow
-            }, cancellationToken);
-        }
+            ContentType = EncryptedContentType.ChatRoomName,
+            ResourceId = room.Id.ToString(),
+            FleetId = fleet.Id,
+            AuthorUserId = userId,
+            KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+            Nonce = request.Nonce.Trim(),
+            Ciphertext = request.Ciphertext.Trim(),
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow
+        }, cancellationToken);
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

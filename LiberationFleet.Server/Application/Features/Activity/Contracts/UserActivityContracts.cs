@@ -11,6 +11,7 @@ public class UserActivityItemDto
     public string? Detail { get; set; }
     public DateTime CreatedAt { get; set; }
     public int CrewId { get; set; }
+    public int? FleetId { get; set; }
     public int ResourceId { get; set; }
     public int? ParentResourceId { get; set; }
     public int? RelatedUserId { get; set; }

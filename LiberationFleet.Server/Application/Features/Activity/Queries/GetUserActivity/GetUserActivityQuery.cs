@@ -63,6 +63,7 @@ public class GetUserActivityQueryHandler(
                 Detail = string.IsNullOrWhiteSpace(record.Detail) ? null : record.Detail,
                 CreatedAt = record.CreatedAt,
                 CrewId = record.CrewId,
+                FleetId = record.FleetId,
                 ResourceId = record.ResourceId,
                 ParentResourceId = record.ParentResourceId,
                 RelatedUserId = record.RelatedUserId,

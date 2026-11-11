@@ -178,6 +178,11 @@ public class CreateChatRoomCommandHandler(
             return new ChatOperationResponse { Success = false, Message = "Fleet chat rooms only support text chat." };
         }
 
+        if (string.IsNullOrWhiteSpace(request.Nonce) || string.IsNullOrWhiteSpace(request.Ciphertext))
+        {
+            return new ChatOperationResponse { Success = false, Message = "Encrypted chat room name is required." };
+        }
+
         var fleet = await fleetRepository.GetFleetForCrewAsync(membership.CrewId, cancellationToken);
         if (fleet is null)
         {
@@ -211,9 +216,12 @@ public class CreateChatRoomCommandHandler(
                 roomId: null,
                 request.Purpose,
                 request.RoomType,
-                request.PlaintextName,
+                request.Nonce.Trim(),
+                request.Ciphertext.Trim(),
+                request.KeyVersion,
                 request.IsAdultContent,
-                cancellationToken);
+                cancellationToken,
+                plaintextName: request.PlaintextName);
 
             await unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -227,11 +235,10 @@ public class CreateChatRoomCommandHandler(
         }
 
         var utcNow = DateTime.UtcNow;
-        var hasEncryptedName = !string.IsNullOrWhiteSpace(request.Nonce) && !string.IsNullOrWhiteSpace(request.Ciphertext);
         var room = new ChatRoom
         {
             FleetId = fleet.Id,
-            Name = hasEncryptedName ? string.Empty : request.PlaintextName.Trim(),
+            Name = string.Empty,
             Purpose = request.Purpose.Trim(),
             RoomType = ChatRoomType.Text,
             CreatedByUserId = userId,
@@ -243,33 +250,26 @@ public class CreateChatRoomCommandHandler(
         await chatRepository.AddRoomAsync(room, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        if (hasEncryptedName)
+        await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
         {
-            await cryptoRepository.UpsertEnvelopeAsync(new EncryptedContentEnvelope
-            {
-                ContentType = EncryptedContentType.ChatRoomName,
-                ResourceId = room.Id.ToString(),
-                FleetId = fleet.Id,
-                AuthorUserId = userId,
-                KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
-                Nonce = request.Nonce.Trim(),
-                Ciphertext = request.Ciphertext.Trim(),
-                CreatedAt = utcNow,
-                UpdatedAt = utcNow
-            }, cancellationToken);
+            ContentType = EncryptedContentType.ChatRoomName,
+            ResourceId = room.Id.ToString(),
+            FleetId = fleet.Id,
+            AuthorUserId = userId,
+            KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+            Nonce = request.Nonce.Trim(),
+            Ciphertext = request.Ciphertext.Trim(),
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow
+        }, cancellationToken);
 
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-        }
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var savedRoom = await chatRepository.GetRoomByIdWithAuthorAsync(room.Id, cancellationToken);
-        EncryptedContentEnvelope? nameEnvelope = null;
-        if (hasEncryptedName)
-        {
-            nameEnvelope = await cryptoRepository.GetEnvelopeAsync(
-                EncryptedContentType.ChatRoomName,
-                room.Id.ToString(),
-                cancellationToken);
-        }
+        var nameEnvelope = await cryptoRepository.GetEnvelopeAsync(
+            EncryptedContentType.ChatRoomName,
+            room.Id.ToString(),
+            cancellationToken);
 
         if (savedRoom is not null)
         {

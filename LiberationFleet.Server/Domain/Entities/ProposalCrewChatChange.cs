@@ -16,8 +16,8 @@ public class ProposalCrewChatChange
     public string? NameCiphertext { get; set; }
 
     /// <summary>
-    /// Plaintext room name used by fleet chat proposals (fleet rooms are not E2E encrypted).
-    /// Crew chat proposals keep the name in the encrypted NameNonce/NameCiphertext pair.
+    /// Optional plaintext room name for proposal descriptions / delete copy.
+    /// Room names themselves are stored in EncryptedContentEnvelopes via NameNonce/NameCiphertext.
     /// </summary>
     public string? PlaintextName { get; set; }
     public string? OrderedRoomIdsJson { get; set; }

@@ -285,7 +285,7 @@ public static class ProposalMapper
             SettingNewValue = listItem.SettingNewValue,
             CreatedAt = proposal.CreatedAt,
             Description = plaintextDescription,
-            CanEdit = !isSystemProposal && proposal.AuthorUserId == viewerUserId && !proposal.FleetId.HasValue,
+            CanEdit = !isSystemProposal && proposal.AuthorUserId == viewerUserId,
             CanDelete = proposal.AuthorUserId == viewerUserId && proposal.Status == ProposalStatus.Pending,
             UsesAnonymousComments = usesAnonymousComments,
             CanKickAuthor = canKickAuthor,

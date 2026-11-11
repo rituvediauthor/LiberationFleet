@@ -60,14 +60,7 @@ public class SendChatMessageCommandHandler(
 
         var isFleetRoom = !room.CrewId.HasValue && room.FleetId.HasValue;
         var hasEncryptedPayload = !string.IsNullOrWhiteSpace(request.Nonce) && !string.IsNullOrWhiteSpace(request.Ciphertext);
-        if (isFleetRoom)
-        {
-            if (!hasEncryptedPayload && string.IsNullOrWhiteSpace(request.Body))
-            {
-                return new ChatOperationResponse { Success = false, Message = "Message content is required." };
-            }
-        }
-        else if (!hasEncryptedPayload)
+        if (!hasEncryptedPayload)
         {
             return new ChatOperationResponse { Success = false, Message = "Encrypted message content is required." };
         }
@@ -79,50 +72,29 @@ public class SendChatMessageCommandHandler(
             AuthorUserId = userId,
             CreatedAt = utcNow,
             IsAnonymous = request.IsAnonymous,
-            Body = isFleetRoom && !hasEncryptedPayload ? request.Body!.Trim() : null
+            Body = null
         };
 
         await chatRepository.AddMessageAsync(message, cancellationToken);
         room.LastActivityAt = utcNow;
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
-        EncryptedContentEnvelope? envelope = null;
-        if (isFleetRoom && hasEncryptedPayload)
+        var envelope = new EncryptedContentEnvelope
         {
-            envelope = new EncryptedContentEnvelope
-            {
-                ContentType = EncryptedContentType.ChatRoomMessage,
-                ResourceId = message.Id.ToString(),
-                FleetId = room.FleetId,
-                AuthorUserId = userId,
-                KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
-                Nonce = request.Nonce.Trim(),
-                Ciphertext = request.Ciphertext.Trim(),
-                CreatedAt = utcNow,
-                UpdatedAt = utcNow
-            };
+            ContentType = EncryptedContentType.ChatRoomMessage,
+            ResourceId = message.Id.ToString(),
+            CrewId = isFleetRoom ? null : membership.CrewId,
+            FleetId = isFleetRoom ? room.FleetId : null,
+            AuthorUserId = userId,
+            KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
+            Nonce = request.Nonce.Trim(),
+            Ciphertext = request.Ciphertext.Trim(),
+            CreatedAt = utcNow,
+            UpdatedAt = utcNow
+        };
 
-            await cryptoRepository.UpsertEnvelopeAsync(envelope, cancellationToken);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-        }
-        else if (!isFleetRoom)
-        {
-            envelope = new EncryptedContentEnvelope
-            {
-                ContentType = EncryptedContentType.ChatRoomMessage,
-                ResourceId = message.Id.ToString(),
-                CrewId = membership.CrewId,
-                AuthorUserId = userId,
-                KeyVersion = request.KeyVersion <= 0 ? 1 : request.KeyVersion,
-                Nonce = request.Nonce.Trim(),
-                Ciphertext = request.Ciphertext.Trim(),
-                CreatedAt = utcNow,
-                UpdatedAt = utcNow
-            };
-
-            await cryptoRepository.UpsertEnvelopeAsync(envelope, cancellationToken);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-        }
+        await cryptoRepository.UpsertEnvelopeAsync(envelope, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var savedMessage = await chatRepository.GetMessageByIdWithAuthorAsync(message.Id, cancellationToken);
         if (savedMessage is not null)

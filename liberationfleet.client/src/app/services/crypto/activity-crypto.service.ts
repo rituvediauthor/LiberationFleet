@@ -14,6 +14,8 @@ import { ProposalCryptoService } from './proposal-crypto.service';
 
 const PREVIEW_MAX_LENGTH = 140;
 
+type ActivityCryptoScope = { crewId: number } | { fleetId: number };
+
 @Injectable({
   providedIn: 'root'
 })
@@ -46,23 +48,34 @@ export class ActivityCryptoService {
         continue;
       }
 
-      const groupKey = `${item.crewId}:${item.previewContentType}`;
+      const scope = this.resolveScope(item);
+      if (!scope) {
+        continue;
+      }
+
+      const groupKey = `${this.scopeGroupKey(scope)}:${item.previewContentType}`;
       const group = previewGroups.get(groupKey) ?? [];
       group.push(item);
       previewGroups.set(groupKey, group);
     }
 
     for (const [groupKey, groupItems] of previewGroups) {
-      const [crewIdPart, contentType] = groupKey.split(':');
-      const crewId = Number(crewIdPart);
+      const separator = groupKey.lastIndexOf(':');
+      const scopeKey = groupKey.slice(0, separator);
+      const contentType = groupKey.slice(separator + 1) as EncryptedContentType;
+      const scope = this.parseScopeGroupKey(scopeKey);
+      if (!scope) {
+        continue;
+      }
+
       const envelopes = await this.fetchEnvelopes(
-        contentType as EncryptedContentType,
+        contentType,
         groupItems.map(item => item.resourceId.toString()),
-        crewId
+        scope
       );
       const envelopeByResourceId = new Map(envelopes.map(envelope => [envelope.resourceId, envelope]));
       try {
-        await this.cryptoSession.warmCrewKeys(crewId);
+        await this.warmScopeKeys(scope);
       } catch {
         for (const item of groupItems) {
           item.previewText = item.previewText ?? '[Unable to decrypt]';
@@ -77,11 +90,7 @@ export class ActivityCryptoService {
         }
 
         try {
-          const extracted = await this.extractPreview(
-            contentType as EncryptedContentType,
-            crewId,
-            envelope
-          );
+          const extracted = await this.extractPreview(contentType, scope, envelope);
           if (extracted.text) {
             item.previewText = this.truncate(extracted.text);
           }
@@ -95,27 +104,37 @@ export class ActivityCryptoService {
     }
 
     const thumbnailTargets = enriched.filter(item => item.thumbnailResourceId);
-    const thumbnailByCrew = new Map<number, UserActivityItem[]>();
+    const thumbnailByScope = new Map<string, UserActivityItem[]>();
     for (const item of thumbnailTargets) {
-      const group = thumbnailByCrew.get(item.crewId) ?? [];
+      const scope = this.resolveScope(item);
+      if (!scope) {
+        continue;
+      }
+      const groupKey = this.scopeGroupKey(scope);
+      const group = thumbnailByScope.get(groupKey) ?? [];
       group.push(item);
-      thumbnailByCrew.set(item.crewId, group);
+      thumbnailByScope.set(groupKey, group);
     }
 
-    for (const [crewId, crewItems] of thumbnailByCrew) {
+    for (const [scopeKey, scopeItems] of thumbnailByScope) {
+      const scope = this.parseScopeGroupKey(scopeKey);
+      if (!scope) {
+        continue;
+      }
+
       try {
-        await this.cryptoSession.warmCrewKeys(crewId);
+        await this.warmScopeKeys(scope);
       } catch {
         continue;
       }
       const resourceIds = [...new Set(
-        crewItems
+        scopeItems
           .map(item => item.thumbnailResourceId)
           .filter((id): id is string => !!id)
       )];
       try {
         const resolved = await this.proposalCrypto.decryptAttachments(
-          crewId,
+          scope,
           resourceIds.map(resourceId => ({
             resourceId,
             type: 'image' as const
@@ -126,7 +145,7 @@ export class ActivityCryptoService {
             .filter(attachment => !!attachment.dataUrl)
             .map(attachment => [attachment.resourceId, attachment.dataUrl!] as const)
         );
-        for (const item of crewItems) {
+        for (const item of scopeItems) {
           if (!item.thumbnailResourceId) {
             continue;
           }
@@ -152,21 +171,62 @@ export class ActivityCryptoService {
     };
   }
 
+  private resolveScope(item: UserActivityItem): ActivityCryptoScope | null {
+    if (item.fleetId != null && item.fleetId > 0) {
+      return { fleetId: item.fleetId };
+    }
+    if (item.crewId > 0) {
+      return { crewId: item.crewId };
+    }
+    return null;
+  }
+
+  private scopeGroupKey(scope: ActivityCryptoScope): string {
+    return 'fleetId' in scope ? `fleet:${scope.fleetId}` : `crew:${scope.crewId}`;
+  }
+
+  private parseScopeGroupKey(scopeKey: string): ActivityCryptoScope | null {
+    const [kind, idPart] = scopeKey.split(':');
+    const id = Number(idPart);
+    if (!Number.isFinite(id) || id <= 0) {
+      return null;
+    }
+    if (kind === 'fleet') {
+      return { fleetId: id };
+    }
+    if (kind === 'crew') {
+      return { crewId: id };
+    }
+    return null;
+  }
+
+  private async warmScopeKeys(scope: ActivityCryptoScope): Promise<void> {
+    if ('fleetId' in scope) {
+      await this.cryptoSession.warmFleetKeys(scope.fleetId);
+      return;
+    }
+    await this.cryptoSession.warmCrewKeys(scope.crewId);
+  }
+
   private async fetchEnvelopes(
     contentType: EncryptedContentType,
     resourceIds: string[],
-    crewId: number
+    scope: ActivityCryptoScope
   ): Promise<EncryptedContentEnvelope[]> {
     if (!resourceIds.length) {
       return [];
     }
 
-    return firstValueFrom(this.cryptoApi.getEncryptedContents(contentType, resourceIds, crewId));
+    if ('fleetId' in scope) {
+      return firstValueFrom(this.cryptoApi.getEncryptedContents(contentType, resourceIds, null, scope.fleetId));
+    }
+
+    return firstValueFrom(this.cryptoApi.getEncryptedContents(contentType, resourceIds, scope.crewId));
   }
 
   private async extractPreview(
     contentType: EncryptedContentType,
-    crewId: number,
+    scope: ActivityCryptoScope,
     envelope: EncryptedContentEnvelope
   ): Promise<{ text?: string; thumbnailResourceId?: string | null }> {
     switch (contentType) {
@@ -174,14 +234,9 @@ export class ActivityCryptoService {
       case 'ForumComment':
       case 'ProposalComment':
       case 'LibraryRequestMessage': {
-        const payload = await this.cryptoSession.decryptWithCrewKeyFallback(
-          crewId,
-          envelope.keyVersion,
-          key => this.cryptoService.decryptJson<ProposalCommentEncryptedPayload>(
-            key,
-            envelope.nonce,
-            envelope.ciphertext
-          )
+        const payload = await this.decryptJsonWithScopeFallback<ProposalCommentEncryptedPayload>(
+          scope,
+          envelope
         );
         return {
           text: payload.body,
@@ -193,14 +248,9 @@ export class ActivityCryptoService {
       case 'ForumPost':
       case 'Proposal':
       case 'LibraryItem': {
-        const payload = await this.cryptoSession.decryptWithCrewKeyFallback(
-          crewId,
-          envelope.keyVersion,
-          key => this.cryptoService.decryptJson<DiscussionEncryptedPayload | ProposalEncryptedPayload>(
-            key,
-            envelope.nonce,
-            envelope.ciphertext
-          )
+        const payload = await this.decryptJsonWithScopeFallback<DiscussionEncryptedPayload | ProposalEncryptedPayload>(
+          scope,
+          envelope
         );
         const text = payload.description?.trim() || payload.title?.trim();
         return {
@@ -212,32 +262,30 @@ export class ActivityCryptoService {
         };
       }
       case 'GiftLogEntry': {
-        const payload = await this.cryptoSession.decryptWithCrewKeyFallback(
-          crewId,
-          envelope.keyVersion,
-          key => this.cryptoService.decryptJson<GiftLogEncryptedPayload>(
-            key,
-            envelope.nonce,
-            envelope.ciphertext
-          )
-        );
+        const payload = await this.decryptJsonWithScopeFallback<GiftLogEncryptedPayload>(scope, envelope);
         return { text: payload.message };
       }
       case 'LibraryMaintenanceRecord': {
-        const payload = await this.cryptoSession.decryptWithCrewKeyFallback(
-          crewId,
-          envelope.keyVersion,
-          key => this.cryptoService.decryptJson<{ note: string }>(
-            key,
-            envelope.nonce,
-            envelope.ciphertext
-          )
-        );
+        const payload = await this.decryptJsonWithScopeFallback<{ note: string }>(scope, envelope);
         return { text: payload.note };
       }
       default:
         return {};
     }
+  }
+
+  private decryptJsonWithScopeFallback<T>(
+    scope: ActivityCryptoScope,
+    envelope: EncryptedContentEnvelope
+  ): Promise<T> {
+    const decrypt = (key: CryptoKey) =>
+      this.cryptoService.decryptJson<T>(key, envelope.nonce, envelope.ciphertext);
+
+    if ('fleetId' in scope) {
+      return this.cryptoSession.decryptWithFleetKeyFallback(scope.fleetId, envelope.keyVersion, decrypt);
+    }
+
+    return this.cryptoSession.decryptWithCrewKeyFallback(scope.crewId, envelope.keyVersion, decrypt);
   }
 
   private truncate(value?: string | null): string | null {
