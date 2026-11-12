@@ -140,6 +140,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private onAppForeground() {
+    this.authService.retryAutoUnlockIfNeeded();
     this.authService.refreshSessionIfRemembered().subscribe({
       next: () => this.refreshMembershipIfInApp(),
       error: () => this.refreshMembershipIfInApp()

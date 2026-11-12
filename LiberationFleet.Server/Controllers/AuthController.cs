@@ -53,7 +53,7 @@ public class AuthController : ControllerBase
     }
 
     /// <summary>
-    /// Re-issues a 24h JWT for the current session (sliding expiry while the user keeps opening the app).
+    /// Re-issues a JWT for the current session (sliding expiry while the user keeps opening the app).
     /// </summary>
     [Authorize]
     [HttpPost("refresh")]

@@ -1,5 +1,6 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { CryptoSessionService } from './crypto/crypto-session.service';
 import { CrewDashboardPreviewService } from './crew-dashboard-preview.service';
@@ -8,7 +9,13 @@ import { NotificationHubService } from './notification-hub.service';
 import { PushNotificationRegistrationService } from './push-notification-registration.service';
 import { APP_ENVIRONMENT } from '../config/app-environment';
 import { clearAuthStorage } from '../testing/test-helpers';
-import { AUTH_TOKEN_STORAGE_KEY, REMEMBER_LOGIN_STORAGE_KEY } from './storage/storage-keys';
+import {
+  AUTH_TOKEN_STORAGE_KEY,
+  PERSISTENT_RECOVERY_PHRASES_STORAGE_KEY,
+  REMEMBER_LOGIN_STORAGE_KEY,
+  SAVE_DECRYPTION_KEY_STORAGE_KEY
+} from './storage/storage-keys';
+import { SavedRecoveryPhraseService } from './saved-recovery-phrase.service';
 
 /** Minimal unexpired JWT so isAuthenticated() does not wipe the test token. */
 function testJwt(userId = 1, expiresInSeconds = 3600): string {
@@ -249,4 +256,126 @@ describe('AuthService token loading', () => {
     const refresh = httpMock.expectOne('/api/auth/refresh');
     refresh.flush({ success: true, token: validToken });
   });
+});
+
+describe('AuthService remembered recovery phrase auto-unlock', () => {
+  const phrase = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+  const token = testJwt(7);
+
+  function setup(unlockImpl: jasmine.Spy): {
+    service: AuthService;
+    httpMock: HttpTestingController;
+    savedPhrases: SavedRecoveryPhraseService;
+  } {
+    clearAuthStorage();
+    localStorage.setItem(REMEMBER_LOGIN_STORAGE_KEY, 'true');
+    localStorage.setItem(AUTH_TOKEN_STORAGE_KEY, token);
+    localStorage.setItem(SAVE_DECRYPTION_KEY_STORAGE_KEY, 'true');
+    localStorage.setItem(PERSISTENT_RECOVERY_PHRASES_STORAGE_KEY, JSON.stringify({ '7': phrase }));
+
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [
+        AuthService,
+        { provide: APP_ENVIRONMENT, useValue: { production: false, apiBaseUrl: '' } },
+        {
+          provide: NotificationHubService,
+          useValue: jasmine.createSpyObj<NotificationHubService>('NotificationHubService', [
+            'connect',
+            'disconnect'
+          ])
+        },
+        {
+          provide: PushNotificationRegistrationService,
+          useValue: jasmine.createSpyObj<PushNotificationRegistrationService>(
+            'PushNotificationRegistrationService',
+            ['start', 'stopAndUnregister']
+          )
+        },
+        {
+          provide: ForumListPrefetchService,
+          useValue: jasmine.createSpyObj<ForumListPrefetchService>('ForumListPrefetchService', [
+            'clearSessionCache',
+            'invalidate'
+          ])
+        },
+        {
+          provide: CrewDashboardPreviewService,
+          useValue: jasmine.createSpyObj<CrewDashboardPreviewService>('CrewDashboardPreviewService', [
+            'clearSessionCache'
+          ])
+        }
+      ]
+    });
+
+    const cryptoSession = TestBed.inject(CryptoSessionService);
+    spyOn(cryptoSession, 'unlockFromRecoveryPhrase').and.callFake(unlockImpl);
+    const savedPhrases = TestBed.inject(SavedRecoveryPhraseService);
+    const service = TestBed.inject(AuthService);
+    const httpMock = TestBed.inject(HttpTestingController);
+
+    const refresh = httpMock.expectOne('/api/auth/refresh');
+    refresh.flush({ success: true, token });
+    return { service, httpMock, savedPhrases };
+  }
+
+  afterEach(() => {
+    clearAuthStorage();
+  });
+
+  it('keeps the saved phrase when unlock fails from a transient API outage', fakeAsync(() => {
+    const unlock = jasmine.createSpy('unlock').and.returnValue(
+      Promise.reject(new HttpErrorResponse({ status: 0, statusText: 'Unknown Error' }))
+    );
+    const { service, httpMock, savedPhrases } = setup(unlock);
+
+    tick();
+    expect(unlock).toHaveBeenCalled();
+    expect(savedPhrases.getPhrase(7)).toBe(phrase);
+
+    tick(2_000);
+    const health = httpMock.expectOne('/healthz');
+    health.flush('unhealthy', { status: 503, statusText: 'Service Unavailable' });
+    tick();
+    expect(savedPhrases.getPhrase(7)).toBe(phrase);
+
+    service.logout();
+    httpMock.verify();
+  }));
+
+  it('clears the saved phrase only on definitive crypto failure', fakeAsync(() => {
+    const unlock = jasmine.createSpy('unlock').and.returnValue(
+      Promise.reject(new Error('Invalid recovery key. Check all 12 words and try again.'))
+    );
+    const { service, httpMock, savedPhrases } = setup(unlock);
+
+    tick();
+    expect(savedPhrases.getPhrase(7)).toBeNull();
+
+    service.logout();
+    httpMock.verify();
+  }));
+
+  it('retryAutoUnlockIfNeeded re-attempts unlock after the API recovers', fakeAsync(() => {
+    let calls = 0;
+    const unlock = jasmine.createSpy('unlock').and.callFake(async () => {
+      calls += 1;
+      if (calls === 1) {
+        throw new HttpErrorResponse({ status: 503, statusText: 'Service Unavailable' });
+      }
+    });
+    const { service, httpMock, savedPhrases } = setup(unlock);
+
+    tick();
+    expect(savedPhrases.getPhrase(7)).toBe(phrase);
+    expect(unlock).toHaveBeenCalledTimes(1);
+
+    service.retryAutoUnlockIfNeeded();
+    tick();
+    expect(unlock).toHaveBeenCalledTimes(2);
+    expect(savedPhrases.getPhrase(7)).toBe(phrase);
+
+    service.logout();
+    httpMock.verify();
+  }));
 });

@@ -45,11 +45,15 @@ export interface LoginRequest {
 })
 export class AuthService {
   private readonly apiUrl = '/api/auth';
+  private static readonly UNLOCK_RETRY_DELAYS_MS = [2_000, 5_000, 15_000, 30_000, 60_000];
+
   private readonly currentUserSubject = new BehaviorSubject<User | null>(null);
   private encryptionReadyPromise: Promise<void> | null = null;
   /** False until local session/device unlock has been attempted (or is unnecessary). */
   private encryptionBootstrapSettled = false;
   private refreshInFlight: Observable<AuthResult | null> | null = null;
+  private unlockRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  private unlockRetryAttempt = 0;
 
   public currentUser$ = this.currentUserSubject.asObservable();
 
@@ -96,7 +100,7 @@ export class AuthService {
   }
 
   /**
-   * Re-issues a JWT so daily use keeps extending the 24h session.
+   * Re-issues a JWT so continued use keeps extending the session.
    * Does not clear crypto or session caches.
    */
   refreshSession(): Observable<AuthResult> {
@@ -201,6 +205,7 @@ export class AuthService {
   logout(): void {
     void this.pushNotifications.stopAndUnregister();
     void this.notificationHub.disconnect();
+    this.cancelEncryptionUnlockRetry();
     this.removeToken();
     this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
     this.cryptoSession.clearSession();
@@ -211,10 +216,31 @@ export class AuthService {
 
   /** Lock encryption and remove any remembered recovery key from this device. */
   lockEncryptionOnThisDevice(): void {
+    this.cancelEncryptionUnlockRetry();
     this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
     this.savedRecoveryPhrase.setSaveEnabled(false);
     this.cryptoSession.clearSession();
     this.resetEncryptionReady();
+  }
+
+  /**
+   * Re-attempt remembered-key auto-unlock after the API may have come back
+   * (app foreground, post-deploy). Keeps the saved phrase on transient failures.
+   */
+  retryAutoUnlockIfNeeded(): void {
+    if (!this.isAuthenticated() || this.cryptoSession.isUnlocked()) {
+      this.cancelEncryptionUnlockRetry();
+      return;
+    }
+
+    if (!this.hasRememberedRecoveryPhrase()) {
+      return;
+    }
+
+    this.unlockRetryAttempt = 0;
+    this.cancelEncryptionUnlockRetry();
+    this.resetEncryptionReady();
+    void this.getEncryptionReady();
   }
 
   private clearSessionCaches(): void {
@@ -399,6 +425,7 @@ export class AuthService {
   private async ensureEncryptionReady(): Promise<void> {
     try {
       if (!this.isAuthenticated() || this.cryptoSession.isUnlocked()) {
+        this.cancelEncryptionUnlockRetry();
         return;
       }
 
@@ -406,15 +433,22 @@ export class AuthService {
       if (stored) {
         try {
           await this.cryptoSession.unlockFromRecoveryPhrase(stored);
+          this.cancelEncryptionUnlockRetry();
           return;
         } catch (error: unknown) {
           if (this.shouldClearRememberedRecoveryPhrase(error)) {
             this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);
+          } else {
+            // Keep the session phrase; API may be restarting. Still try persistent, then retry.
+            this.scheduleEncryptionUnlockRetry();
           }
         }
       }
 
       await this.tryAutoUnlockFromPersistentStorage();
+      if (this.cryptoSession.isUnlocked()) {
+        this.cancelEncryptionUnlockRetry();
+      }
     } finally {
       this.encryptionBootstrapSettled = true;
     }
@@ -438,9 +472,88 @@ export class AuthService {
     try {
       await this.cryptoSession.unlockFromRecoveryPhrase(phrase);
       this.storage.set(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY, phrase);
-    } catch {
-      this.savedRecoveryPhrase.removePhrase(userId);
+    } catch (error: unknown) {
+      if (this.shouldClearRememberedRecoveryPhrase(error)) {
+        this.savedRecoveryPhrase.removePhrase(userId);
+        this.cancelEncryptionUnlockRetry();
+        return;
+      }
+
+      // Downtime / auth blips: keep the saved phrase and retry when the API recovers.
+      this.scheduleEncryptionUnlockRetry();
     }
+  }
+
+  private hasRememberedRecoveryPhrase(): boolean {
+    if (this.storage.get(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY)) {
+      return true;
+    }
+
+    if (!this.savedRecoveryPhrase.isSaveEnabled()) {
+      return false;
+    }
+
+    const userId = this.getCurrentUserId();
+    return !!userId && !!this.savedRecoveryPhrase.getPhrase(userId);
+  }
+
+  private scheduleEncryptionUnlockRetry(): void {
+    if (this.unlockRetryTimer != null || this.cryptoSession.isUnlocked()) {
+      return;
+    }
+
+    if (!this.isAuthenticated() || !this.hasRememberedRecoveryPhrase()) {
+      return;
+    }
+
+    if (this.unlockRetryAttempt >= AuthService.UNLOCK_RETRY_DELAYS_MS.length) {
+      return;
+    }
+
+    const delayMs = AuthService.UNLOCK_RETRY_DELAYS_MS[this.unlockRetryAttempt];
+    this.unlockRetryAttempt += 1;
+    this.unlockRetryTimer = setTimeout(() => {
+      this.unlockRetryTimer = null;
+      void this.runScheduledEncryptionUnlockRetry();
+    }, delayMs);
+  }
+
+  private async runScheduledEncryptionUnlockRetry(): Promise<void> {
+    if (!this.isAuthenticated() || this.cryptoSession.isUnlocked()) {
+      this.cancelEncryptionUnlockRetry();
+      return;
+    }
+
+    if (!this.hasRememberedRecoveryPhrase()) {
+      return;
+    }
+
+    // Prefer waiting for a healthy API when possible, then re-run unlock.
+    const healthy = await this.waitForApiHealthy();
+    if (!healthy && this.unlockRetryAttempt < AuthService.UNLOCK_RETRY_DELAYS_MS.length) {
+      this.scheduleEncryptionUnlockRetry();
+      return;
+    }
+
+    this.resetEncryptionReady();
+    await this.getEncryptionReady();
+  }
+
+  private async waitForApiHealthy(): Promise<boolean> {
+    try {
+      await firstValueFrom(this.http.get('/healthz', { responseType: 'text' }));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private cancelEncryptionUnlockRetry(): void {
+    if (this.unlockRetryTimer != null) {
+      clearTimeout(this.unlockRetryTimer);
+      this.unlockRetryTimer = null;
+    }
+    this.unlockRetryAttempt = 0;
   }
 
   private persistRecoveryPhrase(normalized: string, rememberOnDevice: boolean): void {

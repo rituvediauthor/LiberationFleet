@@ -75,4 +75,19 @@ public class JwtTokenServiceTests
         jwt.Issuer.Should().Be("LiberationFleetTest");
         jwt.Audiences.Should().Contain("LiberationFleetTestClient");
     }
+
+    [Fact]
+    public void GenerateJwtToken_UsesConfiguredOneWeekExpiration()
+    {
+        var before = DateTime.UtcNow;
+        var service = new JwtTokenService(TestConfiguration.CreateJwtConfiguration(expirationMinutes: 10080));
+        var user = HandlerTestFixture.CreateUser();
+
+        var token = service.GenerateJwtToken(user);
+        var after = DateTime.UtcNow;
+        var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
+
+        jwt.ValidTo.Should().BeOnOrAfter(before.AddDays(7).AddSeconds(-5));
+        jwt.ValidTo.Should().BeOnOrBefore(after.AddDays(7).AddSeconds(5));
+    }
 }

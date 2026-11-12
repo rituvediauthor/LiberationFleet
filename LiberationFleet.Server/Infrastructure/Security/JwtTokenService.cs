@@ -10,15 +10,23 @@ namespace LiberationFleet.Server.Infrastructure.Security;
 
 public class JwtTokenService : ITokenService
 {
+    private const int DefaultExpirationMinutes = 10080; // 7 days
+
     private readonly string _secretKey;
     private readonly string _issuer;
     private readonly string _audience;
+    private readonly int _expirationMinutes;
 
     public JwtTokenService(IConfiguration configuration)
     {
         _secretKey = configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured");
         _issuer = configuration["Jwt:Issuer"] ?? "LiberationFleet";
         _audience = configuration["Jwt:Audience"] ?? "LiberationFleetClient";
+        _expirationMinutes = configuration.GetValue("Jwt:ExpirationMinutes", DefaultExpirationMinutes);
+        if (_expirationMinutes <= 0)
+        {
+            _expirationMinutes = DefaultExpirationMinutes;
+        }
     }
 
     public string GenerateJwtToken(User user, int? registeredDeviceId = null)
@@ -44,7 +52,7 @@ public class JwtTokenService : ITokenService
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddHours(24),
+            Expires = DateTime.UtcNow.AddMinutes(_expirationMinutes),
             Issuer = _issuer,
             Audience = _audience,
             SigningCredentials = new SigningCredentials(
