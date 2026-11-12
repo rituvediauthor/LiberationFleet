@@ -431,6 +431,23 @@
             Merge placeholder
           </button>
         </div>
+
+        <div class="merge-block" *ngIf="canRecoverOldAccount">
+          <h3 class="recover-subtitle">This is my old account</h3>
+          <p class="hint-text">
+            Lost the encryption key for this login? Recover it into your current session.
+            You will confirm with that account’s password and an email code. Content you created
+            on this newer account moves over, and that account’s 12-word key becomes the key for
+            this recovered login.
+          </p>
+          <button
+            type="button"
+            class="claim-btn"
+            [disabled]="actionLoading"
+            (click)="onRecoverOldAccount()">
+            Recover
+          </button>
+        </div>
       </section>
 
       <section class="section">

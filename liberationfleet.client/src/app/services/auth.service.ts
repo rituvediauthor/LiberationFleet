@@ -150,6 +150,41 @@ export class AuthService {
     }
   }
 
+  /**
+   * After absorbing a new account into an old one, keep the in-memory identity keys
+   * (they are now the surviving account's keys) while switching the JWT user id.
+   */
+  async establishSessionPreservingCrypto(response: AuthResult): Promise<void> {
+    if (!response.token) {
+      return;
+    }
+
+    const previousUserId = this.getCurrentUserId();
+    const nextUserId = response.user?.id ?? getUserIdFromToken(response.token);
+    this.clearSessionCaches();
+    this.setToken(response.token);
+    this.currentUserSubject.next(response.user ?? null);
+
+    if (previousUserId != null && nextUserId != null && previousUserId !== nextUserId) {
+      const phrase = this.savedRecoveryPhrase.getPhrase(previousUserId);
+      if (phrase) {
+        this.savedRecoveryPhrase.removePhrase(previousUserId);
+        this.savedRecoveryPhrase.savePhrase(nextUserId, phrase);
+      }
+    }
+
+    this.resetEncryptionReady();
+    // Keys already unlocked for the recovery account; mark ready without re-bootstrap wipe.
+    if (this.cryptoSession.isUnlocked()) {
+      this.encryptionBootstrapSettled = true;
+      this.encryptionReadyPromise = Promise.resolve();
+    } else {
+      void this.getEncryptionReady();
+    }
+
+    await this.pushNotifications.start();
+  }
+
   private applyRefreshedSession(response: AuthResult): void {
     if (!response.success || !response.token) {
       return;

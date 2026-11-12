@@ -1,0 +1,73 @@
+.account-recovery-page {
+  width: 100%;
+  max-width: var(--lf-content-max-width, 560px);
+  margin: 0 auto;
+}
+
+.form-card {
+  background: var(--lf-color-bg-surface);
+  border: 1px solid var(--lf-color-border);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-card h1 {
+  margin: 0;
+  font-size: 22px;
+  color: var(--lf-color-text-body);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--lf-color-text-body);
+}
+
+.form-input {
+  padding: 10px 12px;
+  border: 1px solid var(--lf-color-border);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--lf-color-bg-surface);
+  color: var(--lf-color-text-body);
+}
+
+.hint-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--lf-color-text-secondary);
+}
+
+.error-text {
+  margin: 0;
+  font-size: 14px;
+  color: var(--lf-color-danger);
+}
+
+.secondary-btn {
+  align-self: flex-start;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--lf-color-border);
+  background: var(--lf-color-bg-muted);
+  color: var(--lf-color-text-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

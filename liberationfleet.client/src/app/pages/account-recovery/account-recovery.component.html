@@ -1,0 +1,63 @@
+<app-page-layout [backButton]="backButton" [primaryButton]="recoverButton">
+  <div class="account-recovery-page">
+    <div class="form-card">
+      <h1>Recover old account</h1>
+      <p class="hint-text" *ngIf="oldUsername">
+        Recover <strong>{{ oldUsername }}</strong> by proving you still control that login.
+        Your current account’s content and encryption keys will move onto it. Direct messages are
+        kept so friends can still help restore what they can decrypt.
+      </p>
+      <p class="hint-text" *ngIf="!oldUsername">
+        Prove you control this old account. Your current account’s content and encryption keys
+        will move onto it. Direct messages are kept.
+      </p>
+
+      <p class="error-text" role="alert" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+      <div class="form-group">
+        <label for="old-password">Password for the old account</label>
+        <input
+          id="old-password"
+          class="form-input"
+          type="password"
+          name="password"
+          autocomplete="current-password"
+          [(ngModel)]="password"
+          [disabled]="loading">
+      </div>
+
+      <div class="form-group">
+        <label for="recovery-code">Email recovery code</label>
+        <input
+          id="recovery-code"
+          class="form-input"
+          type="text"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          name="code"
+          [(ngModel)]="code"
+          [disabled]="loading">
+        <p class="hint-text" *ngIf="maskedEmail">
+          We sent a code to {{ maskedEmail }}.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="secondary-btn"
+        [disabled]="sendingCode || loading"
+        (click)="sendCode()">
+        {{ challengeToken ? 'Resend code' : 'Send code' }}
+      </button>
+    </div>
+  </div>
+</app-page-layout>
+
+<app-confirm-dialog
+  [visible]="showKeyNotice"
+  title="Keep your recovery key"
+  [message]="keyNoticeMessage"
+  confirmLabel="Got it"
+  (confirmed)="onKeyNoticeClosed()"
+  (dismissed)="onKeyNoticeClosed()">
+</app-confirm-dialog>

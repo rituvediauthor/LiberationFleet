@@ -1,5 +1,6 @@
 using FluentValidation;
 using LiberationFleet.Server.Application.Common.Behaviors;
+using LiberationFleet.Server.Application.Features.AccountRecovery;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.EmergencyRequests;
 using LiberationFleet.Server.Application.Features.Chats;
@@ -44,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<FleetSettingsProposalService>();
         services.AddScoped<FleetRulesProposalService>();
         services.AddScoped<PlaceholderCrewmateService>();
+        services.AddScoped<AccountRecoveryMergeService>();
         services.AddScoped<CrewGiftRecipientService>();
         services.AddScoped<CrewInNeedReevaluationService>();
         services.AddScoped<EmergencySplitService>();

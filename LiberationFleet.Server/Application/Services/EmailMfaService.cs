@@ -185,6 +185,7 @@ public class EmailMfaService(
         {
             EmailMfaPurpose.Enable => "Confirm email MFA for Liberation Fleet",
             EmailMfaPurpose.Disable => "Confirm turning off MFA for Liberation Fleet",
+            EmailMfaPurpose.AccountRecovery => "Recover your Liberation Fleet account",
             _ => "Your Liberation Fleet sign-in code"
         };
 
@@ -192,6 +193,7 @@ public class EmailMfaService(
         {
             EmailMfaPurpose.Enable => "turning on email two-factor authentication",
             EmailMfaPurpose.Disable => "turning off email two-factor authentication",
+            EmailMfaPurpose.AccountRecovery => "recovering your account into a newer login",
             _ => "signing in"
         };
 
@@ -210,6 +212,7 @@ public class EmailMfaService(
         {
             EmailMfaPurpose.Enable => $"We sent a confirmation code to {masked}.",
             EmailMfaPurpose.Disable => $"We sent a confirmation code to {masked} to turn MFA off.",
+            EmailMfaPurpose.AccountRecovery => $"We sent a recovery code to {masked}.",
             _ => $"We sent a sign-in code to {masked}."
         };
     }

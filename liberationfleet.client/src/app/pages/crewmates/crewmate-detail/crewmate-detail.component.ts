@@ -126,8 +126,20 @@ export class CrewmateDetailComponent implements OnInit {
     return !!this.profile?.isPlaceholderMember && !!this.profile?.canManagePlaceholders;
   }
 
+  get canRecoverOldAccount(): boolean {
+    return !!this.profile && !this.profile.isSelf && !this.profile.isPlaceholderMember;
+  }
+
   get showIdentitySection(): boolean {
-    return !!this.profile?.canClaimIdentity || this.canMergePlaceholder;
+    return !!this.profile?.canClaimIdentity || this.canMergePlaceholder || this.canRecoverOldAccount;
+  }
+
+  onRecoverOldAccount(): void {
+    if (!this.canRecoverOldAccount || this.actionLoading) {
+      return;
+    }
+
+    void this.router.navigate(['/app/account-recovery', this.userId]);
   }
 
   ngOnInit() {

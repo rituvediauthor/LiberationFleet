@@ -681,6 +681,12 @@ export const routes: Routes = [
     data: { parentTab: 'crew', locationHeader: 'Nominate Roles' }
   },
   {
+    path: 'app/account-recovery/:oldUserId',
+    loadComponent: () => import('./pages/account-recovery/account-recovery.component').then(m => m.AccountRecoveryComponent),
+    canActivate: [authGuard],
+    data: { parentTab: 'crew', locationHeader: 'Recover account' }
+  },
+  {
     path: 'app/crew/crewmates/:id',
     loadComponent: () => import('./pages/crewmates/crewmate-detail/crewmate-detail.component').then(m => m.CrewmateDetailComponent),
     canActivate: [authGuard],
