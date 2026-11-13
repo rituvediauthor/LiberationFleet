@@ -413,7 +413,9 @@ public class PlaceholderCrewmateAndImpersonationTests
         merged.EmergencyLevel.Should().Be(2);
         merged.DisabilityLevel.Should().Be(1);
         merged.PeopleRepresentedCount.Should().Be(3);
-        (await fixture.Context.Users.AnyAsync(u => u.Id == placeholder.Id)).Should().BeFalse();
+        var retired = await fixture.Context.Users.SingleAsync(u => u.Id == placeholder.Id);
+        retired.IsActive.Should().BeFalse();
+        retired.IsUnclaimedPlaceholder.Should().BeFalse();
     }
 
     [Fact]
@@ -543,7 +545,9 @@ public class PlaceholderCrewmateAndImpersonationTests
         // Alice already had a preferred platform — inherited Venmo should not steal preferred.
         alicePlatforms.Single(p => p.CrewPaymentPlatformId == fixture.Platforms["Venmo"].Id)
             .IsPreferred.Should().BeFalse();
-        (await fixture.Context.Users.AnyAsync(u => u.Id == placeholder.Id)).Should().BeFalse();
+        var retired = await fixture.Context.Users.SingleAsync(u => u.Id == placeholder.Id);
+        retired.IsActive.Should().BeFalse();
+        retired.IsUnclaimedPlaceholder.Should().BeFalse();
     }
 
     [Fact]
@@ -617,7 +621,9 @@ public class PlaceholderCrewmateAndImpersonationTests
         (await fixture.Context.SeasonCycles.CountAsync(c =>
             c.UserId == fixture.Carol.Id && c.SeasonStartDate == fixture.SeasonStart))
             .Should().BeGreaterThan(0);
-        (await fixture.Context.Users.AnyAsync(u => u.Id == placeholder.Id)).Should().BeFalse();
+        var retired = await fixture.Context.Users.SingleAsync(u => u.Id == placeholder.Id);
+        retired.IsActive.Should().BeFalse();
+        retired.IsUnclaimedPlaceholder.Should().BeFalse();
     }
 
     [Fact]
@@ -674,6 +680,62 @@ public class PlaceholderCrewmateAndImpersonationTests
         gifts[0].RecipientUserId.Should().Be(fixture.Carol.Id);
         gifts[1].GiverUserId.Should().Be(fixture.Carol.Id);
         gifts[1].ImpersonatedByUserId.Should().Be(fixture.Alice.Id);
+    }
+
+    [Fact]
+    public async Task MergePlaceholder_WhenGiftVerifiedByPlaceholder_SucceedsAndRetiresPlaceholder()
+    {
+        await using var fixture = await MutualAidSeasonFixture.CreateActiveSeasonAsync(useSqlite: true);
+
+        var placeholder = new User
+        {
+            Username = "ph_verifier",
+            DisplayName = "Pat Verifier",
+            Email = "ph-verifier@example.com",
+            PasswordHash = "hash",
+            IsActive = true,
+            IsUnclaimedPlaceholder = true
+        };
+        fixture.Context.Users.Add(placeholder);
+        await fixture.Context.SaveChangesAsync();
+
+        fixture.Context.CrewMemberships.Add(new CrewMembership
+        {
+            UserId = placeholder.Id,
+            CrewId = fixture.Crew.Id,
+            JoinedAt = DateTime.UtcNow,
+            IsPlaceholderMember = true,
+            IsHonoraryMember = true
+        });
+        fixture.Context.Gifts.Add(new Gift
+        {
+            CrewId = fixture.Crew.Id,
+            GiverUserId = fixture.Alice.Id,
+            RecipientUserId = fixture.Bob.Id,
+            VerifiedByUserId = placeholder.Id,
+            Type = GiftType.Direct,
+            Amount = 25m,
+            CrewPaymentPlatformId = fixture.Platforms["PayPal"].Id,
+            VerificationStatus = GiftVerificationStatus.Verified,
+            CreatedAt = DateTime.UtcNow
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var service = CreatePlaceholderService(fixture);
+        await service.MergePlaceholderIntoClaimantAsync(
+            fixture.Crew.Id,
+            placeholder.Id,
+            fixture.Carol.Id,
+            CancellationToken.None);
+        await fixture.Context.SaveChangesAsync();
+
+        var gift = await fixture.Context.Gifts.SingleAsync();
+        gift.VerifiedByUserId.Should().Be(fixture.Carol.Id);
+
+        var retired = await fixture.Context.Users.SingleAsync(u => u.Id == placeholder.Id);
+        retired.IsActive.Should().BeFalse();
+        retired.IsUnclaimedPlaceholder.Should().BeFalse();
+        (await fixture.Context.CrewMemberships.AnyAsync(m => m.UserId == placeholder.Id)).Should().BeFalse();
     }
 
     private static PlaceholderCrewmateService CreatePlaceholderService(MutualAidSeasonFixture fixture) =>

@@ -444,7 +444,9 @@ public class GiftRepository : IGiftRepository
             .Where(g => g.CrewId == crewId
                 && (g.RecipientUserId == fromUserId
                     || g.MiddlemanUserId == fromUserId
-                    || g.GiverUserId == fromUserId))
+                    || g.GiverUserId == fromUserId
+                    || g.ImpersonatedByUserId == fromUserId
+                    || g.VerifiedByUserId == fromUserId))
             .ToListAsync(cancellationToken);
 
         foreach (var gift in gifts)
@@ -462,6 +464,16 @@ public class GiftRepository : IGiftRepository
             if (gift.GiverUserId == fromUserId)
             {
                 gift.GiverUserId = toUserId;
+            }
+
+            if (gift.ImpersonatedByUserId == fromUserId)
+            {
+                gift.ImpersonatedByUserId = toUserId;
+            }
+
+            if (gift.VerifiedByUserId == fromUserId)
+            {
+                gift.VerifiedByUserId = toUserId;
             }
         }
     }

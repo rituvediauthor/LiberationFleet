@@ -569,30 +569,52 @@ public class MutualAidRepository : IMutualAidRepository
             .Where(t => t.CrewId == crewId && t.UserId == placeholderUserId)
             .ToListAsync(cancellationToken);
 
-        if (thresholds.Count == 0)
+        if (thresholds.Count > 0)
         {
-            return;
+            var claimantThresholds = await _context.MonthlySurvivalThresholds
+                .Where(t => t.CrewId == crewId && t.UserId == claimantUserId)
+                .ToListAsync(cancellationToken);
+            var claimantByMonth = claimantThresholds
+                .ToDictionary(t => (t.Year, t.Month));
+
+            foreach (var threshold in thresholds)
+            {
+                if (claimantByMonth.TryGetValue((threshold.Year, threshold.Month), out var claimantThreshold))
+                {
+                    claimantThreshold.ReceivedAmount += threshold.ReceivedAmount;
+                    claimantThreshold.Satisfied = claimantThreshold.ReceivedAmount >= claimantThreshold.ThresholdAmount;
+                    _context.MonthlySurvivalThresholds.Remove(threshold);
+                }
+                else
+                {
+                    threshold.UserId = claimantUserId;
+                    claimantByMonth[(threshold.Year, threshold.Month)] = threshold;
+                }
+            }
         }
 
-        var claimantThresholds = await _context.MonthlySurvivalThresholds
-            .Where(t => t.CrewId == crewId && t.UserId == claimantUserId)
-            .ToListAsync(cancellationToken);
-        var claimantByMonth = claimantThresholds
-            .ToDictionary(t => (t.Year, t.Month));
-
-        foreach (var threshold in thresholds)
+        // Keep emergency ownership with the surviving account (Restrict FK blocks hard-delete).
+        foreach (var emergency in await _context.EmergencyRequests
+                     .Where(e => e.CrewId == crewId && e.RequesterUserId == placeholderUserId)
+                     .ToListAsync(cancellationToken))
         {
-            if (claimantByMonth.TryGetValue((threshold.Year, threshold.Month), out var claimantThreshold))
-            {
-                claimantThreshold.ReceivedAmount += threshold.ReceivedAmount;
-                claimantThreshold.Satisfied = claimantThreshold.ReceivedAmount >= claimantThreshold.ThresholdAmount;
-                _context.MonthlySurvivalThresholds.Remove(threshold);
-            }
-            else
-            {
-                threshold.UserId = claimantUserId;
-                claimantByMonth[(threshold.Year, threshold.Month)] = threshold;
-            }
+            emergency.RequesterUserId = claimantUserId;
+        }
+
+        foreach (var offer in await _context.EmergencySplitOffers
+                     .Where(o => o.OffererUserId == placeholderUserId
+                         && o.EmergencyRequest.CrewId == crewId)
+                     .ToListAsync(cancellationToken))
+        {
+            offer.OffererUserId = claimantUserId;
+        }
+
+        foreach (var response in await _context.EmergencyGiftResponses
+                     .Where(r => r.GiverUserId == placeholderUserId
+                         && r.EmergencyRequest.CrewId == crewId)
+                     .ToListAsync(cancellationToken))
+        {
+            response.GiverUserId = claimantUserId;
         }
     }
 }

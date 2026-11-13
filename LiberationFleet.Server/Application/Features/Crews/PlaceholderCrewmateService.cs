@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
+using LiberationFleet.Server.Application.Features.Security;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Entities;
@@ -337,7 +338,10 @@ public class PlaceholderCrewmateService(
 
         if (placeholderUser is not null && placeholderUser.IsUnclaimedPlaceholder)
         {
-            userRepository.Remove(placeholderUser);
+            // Soft-retire instead of hard-delete. Gifts, emergencies, and other Restrict
+            // FKs commonly still reference the placeholder after identity remaps; hard-delete
+            // surfaces as an unhandled DbUpdateException ("An unexpected error occurred.").
+            RetireMergedPlaceholder(placeholderUser);
         }
 
         await mutualAidService.OnCrewmatePriorityChangedAsync(claimantUserId, cancellationToken);
@@ -359,6 +363,26 @@ public class PlaceholderCrewmateService(
                     cancellationToken);
             }
         }
+    }
+
+    private static void RetireMergedPlaceholder(User placeholderUser)
+    {
+        placeholderUser.IsUnclaimedPlaceholder = false;
+        placeholderUser.IsActive = false;
+        placeholderUser.IsCrewGiftRecipient = false;
+        placeholderUser.Username = $"mergedph{placeholderUser.Id}";
+        placeholderUser.Email = $"merged-ph-{placeholderUser.Id}@merged.invalid";
+        placeholderUser.PasswordHash = PlaceholderUserDefaults.PasswordHash;
+        placeholderUser.AvatarResourceId = null;
+        placeholderUser.NeedsSurvivalAid = false;
+        placeholderUser.InNeedOfAid = false;
+        placeholderUser.IdentityGroups = null;
+        foreach (var platform in placeholderUser.PaymentPlatforms.ToList())
+        {
+            placeholderUser.PaymentPlatforms.Remove(platform);
+        }
+
+        SecurityStampHelper.Bump(placeholderUser);
     }
 
     /// <summary>
