@@ -156,6 +156,7 @@ public class RecordEmergencyGiftCommandHandler(
                 overflowAmount,
                 request.PaymentPlatformId);
             await giftRepository.AddAsync(overflowGift, cancellationToken);
+            await mutualAidService.CreditLifetimeContributionForGiftAsync(overflowGift, cancellationToken);
         }
 
         if (applyAmount > 0m)

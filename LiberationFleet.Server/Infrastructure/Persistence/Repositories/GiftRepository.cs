@@ -305,6 +305,8 @@ public class GiftRepository : IGiftRepository
         var contributedGifts = _context.Gifts.Where(g =>
             g.CrewId == crewId
             && g.GiverUserId == userId
+            && g.CountsTowardContribution
+            && g.VerificationStatus == GiftVerificationStatus.Verified
             && (g.Type == GiftType.Direct || g.Type == GiftType.Completed));
 
         var receivedGifts = _context.Gifts.Where(g =>
@@ -313,7 +315,12 @@ public class GiftRepository : IGiftRepository
             && (g.Type == GiftType.Direct || g.Type == GiftType.Completed));
 
         // Sacrifices only count responses to emergency requests, not ordinary gifts.
-        var sacrificeQuery = contributedGifts.Where(g => g.EmergencyRequestId != null);
+        // Use all contributed emergency gifts (not only verified) for historical sacrifice counts.
+        var sacrificeQuery = _context.Gifts.Where(g =>
+            g.CrewId == crewId
+            && g.GiverUserId == userId
+            && (g.Type == GiftType.Direct || g.Type == GiftType.Completed)
+            && g.EmergencyRequestId != null);
         if (seasonStartDate.HasValue)
         {
             sacrificeQuery = sacrificeQuery.Where(g => g.CreatedAt >= seasonStartDate.Value);

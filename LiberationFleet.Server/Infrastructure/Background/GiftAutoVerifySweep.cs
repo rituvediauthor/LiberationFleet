@@ -26,6 +26,7 @@ internal static class GiftAutoVerifySweep
         {
             gift.VerificationStatus = GiftVerificationStatus.Verified;
             gift.CountsTowardContribution = true;
+            await mutualAid.CreditLifetimeContributionForGiftAsync(gift, cancellationToken);
             if (!gift.ReceptionApplied)
             {
                 await mutualAid.ApplyGiftReceptionAsync(gift, cancellationToken);

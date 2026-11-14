@@ -102,6 +102,7 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
                 CreatedAt = DateTime.UtcNow
             };
             await giftRepository.AddAsync(loggedGift, cancellationToken);
+            await mutualAidService.CreditLifetimeContributionForGiftAsync(loggedGift, cancellationToken);
             await emergencyRequestRepository.AddGiftResponseAsync(new EmergencyGiftResponse
             {
                 EmergencyRequest = emergencyRequest,
@@ -114,7 +115,7 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
 
         if (reconciliation.OverflowAmount > 0m)
         {
-            await giftRepository.AddAsync(new Gift
+            var overflowGift = new Gift
             {
                 CrewId = requestCrewId,
                 GiverUserId = giverId,
@@ -128,7 +129,9 @@ public class MarkEmergencyGiftAlreadyLoggedCommandHandler(
                 CountsTowardContribution = true,
                 VerificationStatus = GiftVerificationStatus.Verified,
                 CreatedAt = DateTime.UtcNow
-            }, cancellationToken);
+            };
+            await giftRepository.AddAsync(overflowGift, cancellationToken);
+            await mutualAidService.CreditLifetimeContributionForGiftAsync(overflowGift, cancellationToken);
         }
 
         await mutualAidService.RecordEmergencySacrificeAsync(membership.CrewId, giverId, cancellationToken);

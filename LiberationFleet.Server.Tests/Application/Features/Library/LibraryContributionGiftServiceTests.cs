@@ -153,5 +153,6 @@ public class LibraryContributionGiftServiceTests
                 new MutualAidRepository(fixture.Context),
                 new UserRepository(fixture.Context),
                 new CrewMembershipRepository(fixture.Context),
-                fixture.Context));
+                fixture.Context),
+            fixture.Service);
 }

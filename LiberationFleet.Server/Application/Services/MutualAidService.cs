@@ -3,6 +3,7 @@ using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Application.Features.EmergencyRequests;
+using LiberationFleet.Server.Application.Features.Gifts;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
@@ -1072,6 +1073,27 @@ public partial class MutualAidService(
         }
 
         await TryCreateCurrentMonthThresholdsAsync(crew, cancellationToken);
+    }
+
+    public async Task CreditLifetimeContributionForGiftAsync(Gift gift, CancellationToken cancellationToken = default)
+    {
+        if (!GiftLifetimeContribution.CountsTowardLifetimeTotal(gift))
+        {
+            return;
+        }
+
+        var membership = await membershipRepository.GetMembershipAsync(
+            gift.GiverUserId,
+            gift.CrewId,
+            cancellationToken);
+        if (membership?.LifetimeContributionOverride is not decimal current)
+        {
+            // No override: gift-derived lifetime totals pick this gift up automatically.
+            return;
+        }
+
+        // Override replaces gift sums — bump it so confirmed gifts still increase lifetime.
+        membership.LifetimeContributionOverride = current + gift.Amount;
     }
 
     public async Task OnCrewContributionsChangedAsync(int crewId, CancellationToken cancellationToken = default)

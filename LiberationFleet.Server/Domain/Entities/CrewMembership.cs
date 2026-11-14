@@ -47,7 +47,11 @@ public class CrewMembership
     public bool AttachmentsDenied { get; set; }
     public bool CanCreateProposals { get; set; }
     public decimal? EstimatedMonthlyContribution { get; set; }
-    /// <summary>When set, replaces gift-derived lifetime contributions for display and eligibility.</summary>
+    /// <summary>
+    /// When set, replaces gift-derived lifetime contributions for display and eligibility.
+    /// Confirmed contribution gifts still increase this value via
+    /// <c>CreditLifetimeContributionForGiftAsync</c>.
+    /// </summary>
     public decimal? LifetimeContributionOverride { get; set; }
     /// <summary>When set, replaces gift-derived reception this year for display.</summary>
     public decimal? ReceptionThisYearOverride { get; set; }

@@ -399,7 +399,8 @@ public class MutualAidRepository : IMutualAidRepository
                 g.CrewId == crewId
                 && usersNeedingGiftSum.Contains(g.GiverUserId)
                 && g.CountsTowardContribution
-                && (g.Type == GiftType.Direct || g.Type == GiftType.Completed || g.Type == GiftType.Initiated));
+                && g.VerificationStatus == GiftVerificationStatus.Verified
+                && (g.Type == GiftType.Direct || g.Type == GiftType.Completed));
 
         if (before.HasValue)
         {
@@ -434,7 +435,8 @@ public class MutualAidRepository : IMutualAidRepository
             .Where(g =>
                 g.CrewId == crewId
                 && g.CountsTowardContribution
-                && (g.Type == GiftType.Direct || g.Type == GiftType.Completed || g.Type == GiftType.Initiated));
+                && g.VerificationStatus == GiftVerificationStatus.Verified
+                && (g.Type == GiftType.Direct || g.Type == GiftType.Completed));
 
         if (before.HasValue)
         {

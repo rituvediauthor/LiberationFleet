@@ -303,6 +303,7 @@ public class RecordGiftsCommandHandler(
                         CreatedAt = DateTime.UtcNow
                     };
                     await giftRepository.AddAsync(overflowGift, cancellationToken);
+                    await mutualAidService.CreditLifetimeContributionForGiftAsync(overflowGift, cancellationToken);
                     recordedCount++;
                     lastTrackedGiftId = null;
                     lastSaved = overflowGift;

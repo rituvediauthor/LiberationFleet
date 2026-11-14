@@ -90,6 +90,7 @@ public class CustomGiftRecordingService(
                 appliedGift.ReceptionApplied = true;
             }
             await giftRepository.AddAsync(appliedGift, cancellationToken);
+            await mutualAidService.CreditLifetimeContributionForGiftAsync(appliedGift, cancellationToken);
 
             if (category == CustomGiftCategory.Emergency && emergencyRequestId.HasValue)
             {
@@ -128,6 +129,7 @@ public class CustomGiftRecordingService(
                 seasonCycleId: null,
                 impersonatedByUserId);
             await giftRepository.AddAsync(otherGift, cancellationToken);
+            await mutualAidService.CreditLifetimeContributionForGiftAsync(otherGift, cancellationToken);
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

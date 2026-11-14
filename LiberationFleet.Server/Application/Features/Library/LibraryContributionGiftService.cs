@@ -1,3 +1,4 @@
+using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews;
 using LiberationFleet.Server.Domain.Entities;
@@ -18,7 +19,8 @@ public sealed record CreatorContributionGiftDetails(
 public class LibraryContributionGiftService(
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
     IGiftRepository giftRepository,
-    CrewGiftRecipientService crewGiftRecipientService)
+    CrewGiftRecipientService crewGiftRecipientService,
+    IMutualAidService mutualAidService)
 {
     public const string InKindPlatformName = "Library of Things";
 
@@ -238,6 +240,7 @@ public class LibraryContributionGiftService(
         };
 
         await giftRepository.AddAsync(gift, cancellationToken);
+        await mutualAidService.CreditLifetimeContributionForGiftAsync(gift, cancellationToken);
         return gift;
     }
 
@@ -271,6 +274,7 @@ public class LibraryContributionGiftService(
         };
 
         await giftRepository.AddAsync(gift, cancellationToken);
+        await mutualAidService.CreditLifetimeContributionForGiftAsync(gift, cancellationToken);
         return gift;
     }
 

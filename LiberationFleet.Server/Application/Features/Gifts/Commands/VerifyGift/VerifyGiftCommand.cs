@@ -112,6 +112,12 @@ public class VerifyGiftCommandHandler(
                 return new GiftOperationResponse { Success = false, Message = "Unknown verification action." };
         }
 
+        if (request.Action is GiftVerificationAction.ConfirmReceived
+            && GiftLifetimeContribution.CountsTowardLifetimeTotal(gift))
+        {
+            await mutualAidService.CreditLifetimeContributionForGiftAsync(gift, cancellationToken);
+        }
+
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         if (request.Action is GiftVerificationAction.ConfirmReceived)

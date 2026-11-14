@@ -34,6 +34,12 @@ public interface IMutualAidService
     Task<bool> StartSeasonFromReadyAndPrimedAsync(int crewId, CancellationToken cancellationToken = default);
     Task ApplyGiftReceptionAsync(Gift gift, CancellationToken cancellationToken = default);
     Task ApplyGiftReceptionForUserAsync(Gift gift, int recipientUserId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// When a gift newly counts toward lifetime contributions and the giver has a
+    /// <c>LifetimeContributionOverride</c>, bump that override by the gift amount so
+    /// confirmed gifts keep increasing lifetime totals.
+    /// </summary>
+    Task CreditLifetimeContributionForGiftAsync(Gift gift, CancellationToken cancellationToken = default);
     Task OnCrewmatePriorityChangedAsync(int userId, CancellationToken cancellationToken = default);
     Task OnInNeedOfAidChangedAsync(int userId, bool isInNeedOfAid, CancellationToken cancellationToken = default);
     Task EnsureCurrentMonthSurvivalThresholdsAsync(int userId, CancellationToken cancellationToken = default);
