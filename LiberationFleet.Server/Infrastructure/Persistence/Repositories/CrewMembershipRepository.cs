@@ -178,4 +178,34 @@ public class CrewMembershipRepository : ICrewMembershipRepository
 
         return sets.ToDictionary(pair => pair.Key, pair => (IReadOnlySet<int>)pair.Value);
     }
+
+    public async Task<(int ActiveCrewCount, int ActiveCrewmateCount)> CountRecentlyActiveCommunityAsync(
+        DateTime activeSinceUtc,
+        CancellationToken cancellationToken = default)
+    {
+        // Same presence signal as crewmate/friend "last active" (login + throttled product use).
+        var recentlyActiveMemberships = _context.CrewMemberships
+            .AsNoTracking()
+            .Where(m =>
+                !m.IsBanned
+                && m.LeftAt == null
+                && !m.IsPlaceholderMember
+                && m.User.IsActive
+                && !m.User.IsUnclaimedPlaceholder
+                && !m.User.IsCrewGiftRecipient
+                && m.User.LastLoginAt != null
+                && m.User.LastLoginAt >= activeSinceUtc);
+
+        var activeCrewmateCount = await recentlyActiveMemberships
+            .Select(m => m.UserId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        var activeCrewCount = await recentlyActiveMemberships
+            .Select(m => m.CrewId)
+            .Distinct()
+            .CountAsync(cancellationToken);
+
+        return (activeCrewCount, activeCrewmateCount);
+    }
 }

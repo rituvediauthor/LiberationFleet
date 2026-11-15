@@ -12,12 +12,17 @@
   /*
    * Fixed toasts are viewport-relative, so body padding-top does not push them
    * clear of the notch / Dynamic Island in standalone (viewport-fit=cover).
+   * Use gutter + safe inset (not max) so Duo outer camera/rail clearance stacks
+   * with the normal margin instead of being collapsed away when inset > gutter.
    */
   top: calc(20px + var(--lf-safe-top, env(safe-area-inset-top, 0px)));
-  right: max(20px, var(--lf-safe-right, env(safe-area-inset-right, 0px)));
+  right: calc(20px + var(--lf-safe-right, env(safe-area-inset-right, 0px)));
   margin-left: auto;
   width: fit-content;
-  max-width: min(400px, calc(100% - 40px));
+  max-width: min(
+    400px,
+    calc(100% - 40px - var(--lf-safe-left, env(safe-area-inset-left, 0px)) - var(--lf-safe-right, env(safe-area-inset-right, 0px)))
+  );
   pointer-events: none;
 }
 
@@ -130,8 +135,8 @@
 @media (max-width: 600px) {
   .toast-container {
     top: calc(10px + var(--lf-safe-top, env(safe-area-inset-top, 0px)));
-    right: max(10px, var(--lf-safe-right, env(safe-area-inset-right, 0px)));
-    left: max(10px, var(--lf-safe-left, env(safe-area-inset-left, 0px)));
+    right: calc(10px + var(--lf-safe-right, env(safe-area-inset-right, 0px)));
+    left: calc(10px + var(--lf-safe-left, env(safe-area-inset-left, 0px)));
     margin-left: 0;
     max-width: none;
     width: auto;

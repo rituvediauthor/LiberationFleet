@@ -62,13 +62,18 @@ describe('JoinCrewComponent', () => {
     expect(component.primaryButton.disabled).toBeTrue();
   });
 
-  it('should search online crews on page load', () => {
-    expect(crewService.search).toHaveBeenCalledWith(jasmine.objectContaining({
-      scope: 'Online',
-      page: 1,
-      pageSize: 10
-    }));
-    expect(component.hasSearched).toBeTrue();
+  it('should default to local search and wait for location before searching', () => {
+    expect(component.form.get('scope')?.value).toBe('Local');
+    expect(component.isLocal).toBeTrue();
+    // No cached profile location in the shell mock, so local search stays gated.
+    expect(crewService.search).not.toHaveBeenCalled();
+    expect(component.hasSearched).toBeFalse();
+  });
+
+  it('should allow local search once country and postal code are provided', () => {
+    expect(component.canSearch()).toBeFalse();
+    component.form.patchValue({ countryCode: 'US', zipCode: '90210' });
+    expect(component.canSearch()).toBeTrue();
   });
 
   it('should enable select button when crew is selected', () => {
@@ -119,14 +124,18 @@ describe('JoinCrewComponent', () => {
     expect(component.primaryButton.disabled).toBeFalse();
   }));
 
-  it('should show error toast on search failure', () => {
+  it('should show error toast on search failure', fakeAsync(() => {
+    component.form.patchValue({ scope: 'Online' });
+    tick(400);
+    crewService.search.calls.reset();
     crewService.search.and.returnValue(throwError(() => ({ error: { message: 'Search failed' } })));
 
-    component.runSearch(1);
+    void component.runSearch(1);
+    tick();
 
     expect(toastService.error).toHaveBeenCalledWith('Search failed');
     expect(component.isSearching).toBeFalse();
-  });
+  }));
 
   it('should navigate back to crew home from select step', () => {
     component.backButton.onClick?.();

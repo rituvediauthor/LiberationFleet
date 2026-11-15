@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { syncDuoOuterTrailingInsetFallback } from '../utils/safe-area.util';
 
 /** Platform polish for Capacitor iOS / Android shells. No-ops on web. */
 export async function initializeNativeShell(): Promise<void> {
@@ -20,6 +21,14 @@ export async function initializeNativeShell(): Promise<void> {
   } catch {
     // StatusBar may be unavailable on some emulators.
   }
+
+  // After first paint / pose changes, cover Duo outer camera rail if env() is 0.
+  syncDuoOuterTrailingInsetFallback();
+  window.visualViewport?.addEventListener('resize', () => syncDuoOuterTrailingInsetFallback());
+  window.addEventListener('resize', () => syncDuoOuterTrailingInsetFallback());
+  window.addEventListener('orientationchange', () => {
+    window.setTimeout(() => syncDuoOuterTrailingInsetFallback(), 100);
+  });
 
   // Splash stays up until NativeSplashService sees the first routed paint.
 }

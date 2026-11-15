@@ -4,6 +4,27 @@
       <app-brand-logo class="hero-logo" variant="crew" size="lg" alt=""></app-brand-logo>
       <h1>Liberation Fleet</h1>
       <p class="subtitle">Build resilient communities and help those in need with the power of the fleet!</p>
+      <div
+        class="activity-stats"
+        *ngIf="communityStats"
+        [attr.aria-label]="
+          communityStats.activeCrewCount +
+          ' active crews and ' +
+          communityStats.activeCrewmateCount +
+          ' active crewmates in the last ' +
+          communityStats.activeWindowDays +
+          ' days'
+        ">
+        <div class="activity-stat">
+          <span class="activity-stat-value">{{ communityStats.activeCrewCount | number }}</span>
+          <span class="activity-stat-label">Active crews</span>
+        </div>
+        <div class="activity-stat">
+          <span class="activity-stat-value">{{ communityStats.activeCrewmateCount | number }}</span>
+          <span class="activity-stat-label">Active crewmates</span>
+        </div>
+        <p class="activity-stats-hint">Active in the last {{ communityStats.activeWindowDays }} days</p>
+      </div>
     </div>
 
     <section class="how-to-section" aria-labelledby="landing-how-to-heading">

@@ -1,6 +1,8 @@
 import { Component, HostBinding, Injectable, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BehaviorSubject } from 'rxjs';
+import { isNativeApp } from '../../utils/app-platform.util';
+import { syncDuoOuterTrailingInsetFallback } from '../../utils/safe-area.util';
 
 export interface Toast {
   id: string;
@@ -154,5 +156,10 @@ export class ToastContainerComponent implements OnInit, OnDestroy {
   private syncViewportOffset() {
     const offsetTop = window.visualViewport?.offsetTop ?? 0;
     this.viewportTop = Math.max(0, Math.round(offsetTop));
+    // Duo outer: env(safe-area-inset-right) is often 0 while the camera rail still
+    // covers the trailing edge. Only run the geometry fallback in native shells.
+    if (isNativeApp()) {
+      syncDuoOuterTrailingInsetFallback();
+    }
   }
 }

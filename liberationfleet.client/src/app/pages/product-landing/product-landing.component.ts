@@ -7,6 +7,10 @@ import { ConfirmDialogComponent } from '../../components/confirm-dialog/confirm-
 import { DevMutualAidService } from '../../components/dev-toolbar/dev-mutual-aid.service';
 import { DevToolsService } from '../../services/dev-tools.service';
 import { AuthService } from '../../services/auth.service';
+import {
+  CommunityActivityStats,
+  CommunityStatsService
+} from '../../services/community-stats.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { HOW_TO_USE_TOPICS } from '../how-to-use/how-to-use-content';
 
@@ -23,10 +27,12 @@ export class ProductLandingComponent implements OnInit {
   showNukeDialog = false;
   nukeEnabled = false;
   nukeBusy = false;
+  communityStats: CommunityActivityStats | null = null;
 
   private readonly devMutualAidService = inject(DevMutualAidService);
   private readonly devToolsService = inject(DevToolsService);
   private readonly authService = inject(AuthService);
+  private readonly communityStatsService = inject(CommunityStatsService);
   private readonly toastService = inject(ToastService);
 
   constructor(private router: Router) {
@@ -48,6 +54,12 @@ export class ProductLandingComponent implements OnInit {
       },
       error: () => {
         this.nukeEnabled = false;
+      }
+    });
+
+    this.communityStatsService.getCommunityActivity().subscribe({
+      next: stats => {
+        this.communityStats = stats;
       }
     });
   }

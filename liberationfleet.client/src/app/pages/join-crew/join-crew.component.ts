@@ -78,7 +78,7 @@ export class JoinCrewComponent implements OnInit {
     this.form = this.fb.group({
       mode: ['find' as JoinMode, Validators.required],
       joinCode: [''],
-      scope: ['Online' as CrewScope, Validators.required],
+      scope: ['Local' as CrewScope, Validators.required],
       countryCode: [cached?.countryCode ?? null],
       zipCode: [cached?.zipCode ?? '']
     });

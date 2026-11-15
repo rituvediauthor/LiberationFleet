@@ -987,6 +987,7 @@ public class MutualAidServiceTests
             Amount = 50m,
             Type = GiftType.Direct,
             CountsTowardContribution = true,
+            VerificationStatus = GiftVerificationStatus.Verified,
             CreatedAt = DateTime.UtcNow
         });
         await fixture.Context.SaveChangesAsync();

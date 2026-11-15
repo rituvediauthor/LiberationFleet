@@ -30,4 +30,11 @@ public interface ICrewMembershipRepository
     void Remove(CrewMembership membership);
     /// <summary>Soft-leave: retain the row and crew-specific stats for a later rejoin.</summary>
     void MarkLeft(CrewMembership membership, DateTime leftAtUtc);
+    /// <summary>
+    /// Public marketing counters: distinct active crews/crewmates with presence
+    /// (<see cref="User.LastLoginAt"/>) at or after <paramref name="activeSinceUtc"/>.
+    /// </summary>
+    Task<(int ActiveCrewCount, int ActiveCrewmateCount)> CountRecentlyActiveCommunityAsync(
+        DateTime activeSinceUtc,
+        CancellationToken cancellationToken = default);
 }

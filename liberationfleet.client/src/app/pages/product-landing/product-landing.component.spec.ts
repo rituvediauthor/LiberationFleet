@@ -5,6 +5,7 @@ import { of, throwError } from 'rxjs';
 import { DevMutualAidService } from '../../components/dev-toolbar/dev-mutual-aid.service';
 import { ToastService } from '../../components/toast/toast.component';
 import { AuthService } from '../../services/auth.service';
+import { CommunityStatsService } from '../../services/community-stats.service';
 import { DevToolsService } from '../../services/dev-tools.service';
 import { createAuthServiceMock, provideAppShellMocks } from '../../testing/test-helpers';
 import { ProductLandingComponent } from './product-landing.component';
@@ -14,13 +15,20 @@ describe('ProductLandingComponent', () => {
   let router: Router;
   let devMutualAid: jasmine.SpyObj<DevMutualAidService>;
   let devTools: jasmine.SpyObj<DevToolsService>;
+  let communityStats: jasmine.SpyObj<CommunityStatsService>;
   let toastService: jasmine.SpyObj<ToastService>;
 
   beforeEach(async () => {
     devMutualAid = jasmine.createSpyObj<DevMutualAidService>('DevMutualAidService', ['resetApp']);
     devTools = jasmine.createSpyObj<DevToolsService>('DevToolsService', ['load'], { isEnabled: false });
+    communityStats = jasmine.createSpyObj<CommunityStatsService>('CommunityStatsService', [
+      'getCommunityActivity'
+    ]);
     toastService = jasmine.createSpyObj<ToastService>('ToastService', ['success', 'error']);
     devTools.load.and.returnValue(of({ enabled: false }));
+    communityStats.getCommunityActivity.and.returnValue(
+      of({ activeCrewCount: 4, activeCrewmateCount: 18, activeWindowDays: 30 })
+    );
 
     await TestBed.configureTestingModule({
       imports: [ProductLandingComponent],
@@ -30,6 +38,7 @@ describe('ProductLandingComponent', () => {
         { provide: AuthService, useValue: createAuthServiceMock() },
         { provide: DevMutualAidService, useValue: devMutualAid },
         { provide: DevToolsService, useValue: devTools },
+        { provide: CommunityStatsService, useValue: communityStats },
         { provide: ToastService, useValue: toastService }
       ]
     }).compileComponents();
@@ -51,6 +60,10 @@ describe('ProductLandingComponent', () => {
     expect(element.querySelectorAll('.menu-link').length).toBeGreaterThan(0);
     expect(element.textContent).toContain('Guide to run a crew without the app');
     expect(element.textContent).toContain('Donate to Liberation Fleet Co.');
+    expect(element.textContent).toContain('Active crews');
+    expect(element.textContent).toContain('Active crewmates');
+    expect(element.textContent).toContain('18');
+    expect(element.textContent).toContain('Active in the last 30 days');
   });
 
   it('should navigate to a public how-to topic when a menu button is clicked', () => {
