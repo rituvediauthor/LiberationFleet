@@ -40,6 +40,7 @@
         <p class="task-schedule" *ngIf="activeTab === 'deadline' && formatDue(item)">{{ formatDue(item) }}</p>
         <p class="task-schedule" *ngIf="activeTab === 'no-deadline'">When you can</p>
         <p class="task-value">${{ formatValue(item.value) }}</p>
+        <p class="task-value-note">{{ questValueCardNote }}</p>
       </button>
     </div>
   </div>

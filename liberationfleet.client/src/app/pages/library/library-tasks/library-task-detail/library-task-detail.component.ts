@@ -14,6 +14,7 @@ import {
   LibraryTaskInstance,
   LibraryTaskInstanceStatus
 } from '../../../../models/library.model';
+import { QUEST_VALUE_EXPLANATION } from '../library-task-copy';
 
 type SelectionMode = 'Open' | 'Claimed' | 'AwaitingConfirmation' | null;
 
@@ -25,6 +26,7 @@ type SelectionMode = 'Open' | 'Claimed' | 'AwaitingConfirmation' | null;
   styleUrl: './library-task-detail.component.css'
 })
 export class LibraryTaskDetailComponent implements OnInit {
+  readonly questValueExplanation = QUEST_VALUE_EXPLANATION;
   backButton!: ActionBarButton;
   primaryButton: ActionBarButton | null = null;
   secondaryButton: ActionBarButton | null = null;

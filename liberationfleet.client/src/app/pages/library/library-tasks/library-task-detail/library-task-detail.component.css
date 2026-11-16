@@ -27,10 +27,17 @@
 }
 
 .task-value {
-  margin: 0 0 8px;
+  margin: 0 0 4px;
   font-size: 16px;
   font-weight: 600;
   color: var(--lf-color-accent);
+}
+
+.task-value-note {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--lf-color-text-secondary);
 }
 
 .task-schedule {

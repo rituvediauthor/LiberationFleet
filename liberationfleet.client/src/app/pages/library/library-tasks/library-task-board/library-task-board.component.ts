@@ -10,6 +10,7 @@ import { LibraryCryptoService } from '../../../../services/crypto/library-crypto
 import { CrewService } from '../../../../services/crew.service';
 import { ToastService } from '../../../../components/toast/toast.component';
 import { LibraryTaskListItem } from '../../../../models/library.model';
+import { QUEST_VALUE_CARD_NOTE } from '../library-task-copy';
 
 export type QuestBoardTab = 'deadline' | 'no-deadline';
 
@@ -21,6 +22,7 @@ export type QuestBoardTab = 'deadline' | 'no-deadline';
   styleUrl: './library-task-board.component.css'
 })
 export class LibraryTaskBoardComponent implements OnInit {
+  readonly questValueCardNote = QUEST_VALUE_CARD_NOTE;
   backButton!: ActionBarButton;
   createButton!: ActionBarButton;
   activeTab: QuestBoardTab = 'deadline';

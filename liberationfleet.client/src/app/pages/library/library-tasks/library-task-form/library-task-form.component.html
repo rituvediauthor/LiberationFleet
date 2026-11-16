@@ -19,7 +19,7 @@
       </div>
 
       <div class="form-group">
-        <label for="value">Value ($)</label>
+        <label for="value">Contribution value ($)</label>
         <input
           id="value"
           class="form-input"
@@ -28,7 +28,8 @@
           step="0.01"
           formControlName="value"
           [attr.aria-invalid]="isInvalid('value')"
-          [attr.aria-describedby]="isInvalid('value') ? 'value-error' : null" />
+          [attr.aria-describedby]="isInvalid('value') ? 'value-error value-hint' : 'value-hint'" />
+        <p id="value-hint" class="field-hint value-hint">{{ questValueExplanation }}</p>
         <span id="value-error" class="error-text" role="alert" *ngIf="isInvalid('value')">
           Enter a value of at least $0.01
         </span>

@@ -17,6 +17,7 @@ import {
 } from '../../../../models/library.model';
 import { isControlInvalidForA11y } from '../../../../utils/a11y-form.util';
 import { TextFieldLimits } from '../../../../utils/text-field-limits';
+import { QUEST_VALUE_EXPLANATION } from '../library-task-copy';
 
 @Component({
   selector: 'app-library-task-form',
@@ -34,6 +35,7 @@ export class LibraryTaskFormComponent implements OnInit {
   isEdit = false;
   taskId: number | null = null;
   private crewId = 0;
+  readonly questValueExplanation = QUEST_VALUE_EXPLANATION;
   readonly titleMaxLength = TextFieldLimits.title;
   readonly detailsMaxLength = TextFieldLimits.longBody;
   readonly weekDayLabels = [

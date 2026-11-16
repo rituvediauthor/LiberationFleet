@@ -77,6 +77,11 @@
   line-height: 1.4;
 }
 
+.form-group > .field-hint.value-hint {
+  padding-left: 0;
+  margin-top: 6px;
+}
+
 .checkbox-field .field-hint {
   margin-top: 4px;
 }
