@@ -14,6 +14,7 @@ public class DenyLibraryRequestCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ILibraryRepository libraryRepository,
+    INotificationRepository notificationRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<DenyLibraryRequestCommand, LibraryRequestOperationResponse>
 {
@@ -52,6 +53,11 @@ public class DenyLibraryRequestCommandHandler(
         libraryRequest.DeniedAt = utcNow;
         libraryRequest.UpdatedAt = utcNow;
 
+        await ActionRequiredNotificationResolver.ResolveRelatedForAllUsersAsync(
+            notificationRepository,
+            NotificationKind.NewLibraryRequest,
+            libraryRequest.Id,
+            cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await notificationService.NotifyUserAsync(new CreateNotificationRequest

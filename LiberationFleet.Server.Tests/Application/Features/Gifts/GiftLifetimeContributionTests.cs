@@ -108,6 +108,7 @@ public class GiftLifetimeContributionTests
             new GiftRepository(fixture.Context),
             new CrewPaymentPlatformRepository(fixture.Context),
             fixture.Service,
+            new NotificationRepository(fixture.Context),
             fixture.Context,
             NullLogger<VerifyGiftCommandHandler>.Instance);
 

@@ -57,6 +57,7 @@ public class VerifyGiftSeasonLockTests
             giftRepository.Object,
             HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock().Object,
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
+            new Mock<INotificationRepository>(MockBehavior.Loose).Object,
             HandlerTestFixture.CreateUnitOfWorkMock().Object,
             NullLogger<VerifyGiftCommandHandler>.Instance);
 
@@ -120,12 +121,21 @@ public class VerifyGiftSeasonLockTests
             .Returns(Task.CompletedTask);
 
         var unitOfWork = HandlerTestFixture.CreateUnitOfWorkMock();
+        var notifications = new Mock<INotificationRepository>(MockBehavior.Loose);
+        notifications
+            .Setup(r => r.ResolveRequiresActionAsync(
+                It.IsAny<int>(),
+                It.IsAny<NotificationKind>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
         var handler = new VerifyGiftCommandHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(user.Id).Object,
             membershipRepository.Object,
             giftRepository.Object,
             HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock().Object,
             mutualAid.Object,
+            notifications.Object,
             unitOfWork.Object,
             NullLogger<VerifyGiftCommandHandler>.Instance);
 
@@ -179,12 +189,21 @@ public class VerifyGiftSeasonLockTests
             .Setup(s => s.OnCrewContributionsChangedAsync(crew.Id, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new InvalidOperationException("boom"));
 
+        var notifications = new Mock<INotificationRepository>(MockBehavior.Loose);
+        notifications
+            .Setup(r => r.ResolveRequiresActionAsync(
+                It.IsAny<int>(),
+                It.IsAny<NotificationKind>(),
+                It.IsAny<int>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(1);
         var handler = new VerifyGiftCommandHandler(
             HandlerTestFixture.CreateCurrentUserServiceMock(user.Id).Object,
             membershipRepository.Object,
             giftRepository.Object,
             HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock().Object,
             mutualAid.Object,
+            notifications.Object,
             HandlerTestFixture.CreateUnitOfWorkMock().Object,
             NullLogger<VerifyGiftCommandHandler>.Instance);
 

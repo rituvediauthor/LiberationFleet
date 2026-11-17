@@ -2953,6 +2953,9 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                     b.Property<int?>("RelatedEntityId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("RequiresAction")
+                        .HasColumnType("bit");
+
                     b.Property<int?>("SecondaryEntityId")
                         .HasColumnType("int");
 

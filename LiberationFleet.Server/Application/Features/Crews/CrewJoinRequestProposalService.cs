@@ -251,7 +251,8 @@ public class CrewJoinRequestProposalService(
             Body =
                 $"Your request to join {crew.Name} was approved. Would you like to switch crews or stay in your present crew?",
             ActionUrl = "/app/notifications",
-            RelatedEntityId = proposal.Id
+            RelatedEntityId = proposal.Id,
+            RequiresAction = true
         }, cancellationToken);
     }
 
@@ -451,6 +452,11 @@ public class CrewJoinRequestProposalService(
         {
             pendingInvitation.Status = CrewInvitationStatus.Accepted;
             pendingInvitation.RespondedAt = DateTime.UtcNow;
+            await ActionRequiredNotificationResolver.ResolveRelatedForAllUsersAsync(
+                notificationRepository,
+                NotificationKind.JoinRequestFromCrew,
+                pendingInvitation.Id,
+                cancellationToken);
         }
 
         if (notifyApplicantJoined)
@@ -493,6 +499,7 @@ public class CrewJoinRequestProposalService(
         {
             offer.SecondaryEntityId = decisionCode;
             offer.Body = NotificationPreview.Truncate(resolvedBody);
+            offer.RequiresAction = false;
             offer.IsRead = true;
         }
     }

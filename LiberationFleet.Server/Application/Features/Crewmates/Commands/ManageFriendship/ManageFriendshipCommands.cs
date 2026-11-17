@@ -83,7 +83,8 @@ public class RequestFriendshipCommandHandler(
             Title = NotificationCopy.SentFriendRequest(requesterName),
             Body = $"{requesterName} wants to be friends.",
             ActionUrl = "/app/friends/requests",
-            ActorUserId = access.ViewerId
+            ActorUserId = access.ViewerId,
+            RequiresAction = true
         }, cancellationToken);
 
         return new CrewmateOperationResponse

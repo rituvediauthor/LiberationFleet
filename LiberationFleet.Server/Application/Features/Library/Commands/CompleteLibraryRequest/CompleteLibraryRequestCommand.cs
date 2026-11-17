@@ -21,6 +21,7 @@ public class CompleteLibraryRequestCommandHandler(
     LibraryContributionGiftService contributionGiftService,
     IMutualAidService mutualAidService,
     LibraryPriorityTierService priorityTierService,
+    INotificationRepository notificationRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CompleteLibraryRequestCommand, LibraryCompleteRequestResponse>
 {
@@ -128,6 +129,13 @@ public class CompleteLibraryRequestCommandHandler(
         {
             await mutualAidService.OnCrewContributionsChangedAsync(membership.CrewId, cancellationToken);
         }
+
+        await ActionRequiredNotificationResolver.ResolveRelatedForAllUsersAsync(
+            notificationRepository,
+            NotificationKind.NewLibraryRequest,
+            libraryRequest.Id,
+            cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await notificationService.NotifyUserAsync(new CreateNotificationRequest
         {

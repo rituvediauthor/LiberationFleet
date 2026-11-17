@@ -406,7 +406,8 @@ public static class NotificationBadgeBuilder
             NotificationKind.NewLibraryRequest or NotificationKind.LibraryRequestDenied or NotificationKind.LibraryRequestCompleted
                 or NotificationKind.NewLibraryRequestMessage or NotificationKind.LibraryUnitBrokenReported
                 or NotificationKind.LibraryUnitBrokenConfirmed or NotificationKind.LibraryUnitReportedFixed
-                or NotificationKind.LibraryTaskScheduleChanged => "crewLibrary",
+                or NotificationKind.LibraryTaskScheduleChanged
+                or NotificationKind.LibraryTaskCompletionSubmitted => "crewLibrary",
             NotificationKind.FriendRequest or NotificationKind.FriendRequestAccepted
                 or NotificationKind.NewDirectMessage => "friends",
             _ => null
@@ -504,6 +505,7 @@ public static class NotificationBadgeBuilder
                 keys.Add("library-section:mine");
                 break;
             case NotificationKind.LibraryTaskScheduleChanged:
+            case NotificationKind.LibraryTaskCompletionSubmitted:
                 keys.Add("library-section:tasks");
                 if (notification.RelatedEntityId.HasValue)
                 {

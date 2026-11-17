@@ -32,8 +32,8 @@ public class LibraryContributionGiftService(
         string recipientUsername,
         CancellationToken cancellationToken = default)
     {
-        // Stock use awards a single peer gift: creator gets contribution credit (financial membership),
-        // recipient gets reception credit toward their cycle.
+        // Stock use awards a peer gift: creator contribution + recipient gift-log reception,
+        // without filling season cycles / survival thresholds.
         return await TryAwardRecipientReceptionForStockUseAsync(
             crewId,
             offering,
@@ -57,19 +57,36 @@ public class LibraryContributionGiftService(
             return null;
         }
 
-        var details = await AwardCreatorContributionAsync(
-            crewId,
-            offering,
-            quantity,
-            newPossessorUserId,
-            newPossessorUsername,
-            cancellationToken);
-        if (details is not null)
+        // Peer gift to the new holder: creator lifetime↑, holder gift-log reception↑,
+        // without filling season cycles / survival thresholds.
+        var amount = LibraryOfferingRules.CalculateCreatorContributionAmount(offering, quantity);
+        if (amount <= 0 || offering.CreatorUserId == newPossessorUserId)
         {
-            unit.CreatorContributionCredited = true;
+            return null;
         }
 
-        return details;
+        var gift = await CreatePeerGiftAsync(
+            crewId,
+            offering.CreatorUserId,
+            newPossessorUserId,
+            amount,
+            countsTowardContribution: true,
+            countsTowardReception: false,
+            offering.Title,
+            cancellationToken);
+
+        unit.CreatorContributionCredited = true;
+
+        var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
+        return new CreatorContributionGiftDetails(
+            gift.Id,
+            offering.CreatorUserId,
+            offering.CreatorUser?.Username ?? "Crewmate",
+            amount,
+            offering.Title,
+            newPossessorUserId,
+            newPossessorUsername,
+            crewRecipient.Id);
     }
 
     public async Task<CreatorContributionGiftDetails?> TryAwardCompleterForDurableHandoffAsync(
@@ -94,13 +111,14 @@ public class LibraryContributionGiftService(
         }
 
         // Handoff credit is peer-to-peer (provider → receiving crewmate), never "to the crew".
+        // Gift-log reception rises; cycles/thresholds are not filled.
         var gift = await CreatePeerGiftAsync(
             crewId,
             completerUserId,
             recipientUserId,
             amount,
             countsTowardContribution: true,
-            countsTowardReception: true,
+            countsTowardReception: false,
             offering.Title,
             cancellationToken);
 
@@ -137,7 +155,7 @@ public class LibraryContributionGiftService(
             recipientUserId,
             amount,
             countsTowardContribution: true,
-            countsTowardReception: true,
+            countsTowardReception: false,
             offering.Title,
             cancellationToken);
 
@@ -293,13 +311,14 @@ public class LibraryContributionGiftService(
             return null;
         }
 
+        // Completer contribution + quest-giver gift-log reception; not cycle/threshold categorized.
         var gift = await CreatePeerGiftAsync(
             crewId,
             completerUserId,
             creatorUserId,
             value,
             countsTowardContribution: true,
-            countsTowardReception: true,
+            countsTowardReception: false,
             taskTitle,
             cancellationToken);
 

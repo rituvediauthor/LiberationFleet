@@ -15,6 +15,7 @@ public class NotificationDto
     public int? ActorUserId { get; set; }
     public string? ActorAvatarResourceId { get; set; }
     public bool IsRead { get; set; }
+    public bool RequiresAction { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
@@ -80,6 +81,12 @@ public class CreateNotificationRequest
 
     /// <summary>When set, skip this notification if the recipient muted that fleet's posts.</summary>
     public int? MuteFleetSpaceId { get; set; }
+
+    /// <summary>
+    /// When true, mark-read / mark-all / mark-by-content will not clear this until the
+    /// related action is resolved (gift confirm, quest confirm, etc.).
+    /// </summary>
+    public bool RequiresAction { get; set; }
 }
 
 public class NotificationBadgeSummaryResponse

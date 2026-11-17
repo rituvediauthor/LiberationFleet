@@ -118,9 +118,11 @@ public class DeleteAccountCommandHandlerTests
         var libraryCleanup = new LibraryMemberCleanupService(
             Mock.Of<ILibraryRepository>(),
             Mock.Of<ICryptoRepository>(),
+            Mock.Of<INotificationRepository>(),
             new LibraryRequestCleanupHelper(
                 Mock.Of<ILibraryRepository>(),
-                Mock.Of<ICryptoRepository>()));
+                Mock.Of<ICryptoRepository>(),
+                Mock.Of<INotificationRepository>()));
         var emptyCrewCleanup = new EmptyCrewCleanupService(
             memberships,
             Mock.Of<ICrewCleanupRepository>());

@@ -17,7 +17,7 @@ import {
 } from '../../../../models/library.model';
 import { isControlInvalidForA11y } from '../../../../utils/a11y-form.util';
 import { TextFieldLimits } from '../../../../utils/text-field-limits';
-import { QUEST_VALUE_EXPLANATION } from '../library-task-copy';
+import { questValueExplanation } from '../library-task-copy';
 
 @Component({
   selector: 'app-library-task-form',
@@ -35,7 +35,6 @@ export class LibraryTaskFormComponent implements OnInit {
   isEdit = false;
   taskId: number | null = null;
   private crewId = 0;
-  readonly questValueExplanation = QUEST_VALUE_EXPLANATION;
   readonly titleMaxLength = TextFieldLimits.title;
   readonly detailsMaxLength = TextFieldLimits.longBody;
   readonly weekDayLabels = [
@@ -173,6 +172,11 @@ export class LibraryTaskFormComponent implements OnInit {
 
   isInvalid(controlName: string): boolean {
     return isControlInvalidForA11y(this.form.get(controlName));
+  }
+
+  questValueNote(value: unknown): string {
+    const amount = typeof value === 'number' ? value : Number(value);
+    return questValueExplanation(Number.isFinite(amount) && amount > 0 ? amount : 0);
   }
 
   isWeekDaySelected(day: number): boolean {

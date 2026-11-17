@@ -84,6 +84,8 @@ public class ReportLibraryUnitBrokenCommandHandler(
             $"{trackedUnit.Offering.Title} was reported broken and needs confirmation.",
             $"/app/crew/library-of-things/units/{trackedUnit.Id}?highlightId={trackedUnit.Id}",
             relatedEntityId: trackedUnit.Id,
+            excludeUserId: userId,
+            requiresAction: true,
             cancellationToken: cancellationToken);
 
         return new LibraryUnitOperationResponse

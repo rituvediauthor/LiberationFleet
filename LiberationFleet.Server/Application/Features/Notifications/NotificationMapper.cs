@@ -20,6 +20,7 @@ public static class NotificationMapper
             SecondaryEntityId = notification.SecondaryEntityId,
             ActorUserId = omitActor ? null : notification.ActorUserId,
             IsRead = notification.IsRead,
+            RequiresAction = notification.RequiresAction,
             CreatedAt = notification.CreatedAt
         };
     }

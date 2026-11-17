@@ -371,7 +371,8 @@ export class NotificationHubService implements OnDestroy {
       61: 'GiftReceivedByMe',
       62: 'IntermediaryGift',
       63: 'FleetGiftReceivedByMe',
-      64: 'FleetIntermediaryGift'
+      64: 'FleetIntermediaryGift',
+      65: 'LibraryTaskCompletionSubmitted'
     };
     return map[value] ?? String(value);
   }

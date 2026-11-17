@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
 
@@ -8,6 +9,7 @@ namespace LiberationFleet.Server.Application.Features.Library;
 public class LibraryMemberCleanupService(
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
+    INotificationRepository notificationRepository,
     LibraryRequestCleanupHelper requestCleanupHelper)
 {
     public async Task CleanupForDepartingMemberAsync(
@@ -33,6 +35,12 @@ public class LibraryMemberCleanupService(
         foreach (var unit in possessedUnits)
         {
             await requestCleanupHelper.CancelActiveRequestsForUnitAsync(unit.Id, cancellationToken);
+            unit.BrokenPendingConfirmation = false;
+            await ActionRequiredNotificationResolver.ResolveRelatedForAllUsersAsync(
+                notificationRepository,
+                NotificationKind.LibraryUnitBrokenReported,
+                unit.Id,
+                cancellationToken);
             await cryptoRepository.DeleteEnvelopesAsync(
                 EncryptedContentType.LibraryBrokenReport,
                 [unit.Id.ToString()],

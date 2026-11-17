@@ -221,7 +221,8 @@ public class CreateLibraryRequestCommandHandler(
             Title = "New library request",
             Body = $"Someone requested {unit.Offering.Title}.",
             ActionUrl = $"/app/crew/library-of-things/requests/{libraryRequest.Id}",
-            RelatedEntityId = libraryRequest.Id
+            RelatedEntityId = libraryRequest.Id,
+            RequiresAction = true
         }, cancellationToken);
 
         return new LibraryRequestOperationResponse

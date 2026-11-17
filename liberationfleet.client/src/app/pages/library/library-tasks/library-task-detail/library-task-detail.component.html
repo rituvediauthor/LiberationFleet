@@ -10,8 +10,7 @@
     <ng-container *ngIf="!loading && task">
       <p class="task-meta">Created by {{ task.creatorUsername }}</p>
       <h2 class="task-title">{{ task.title }}</h2>
-      <p class="task-value">${{ formatValue(task.value) }}</p>
-      <p class="task-value-note">{{ questValueExplanation }}</p>
+      <p class="task-value-note">{{ questValueNote(task.value) }}</p>
       <p class="task-schedule" *ngIf="task.scheduleSummary">{{ task.scheduleSummary }}</p>
       <p class="task-details" *ngIf="task.details">{{ task.details }}</p>
       <p class="state-text" *ngIf="isNoDeadline && task.awaitingConfirmationForCurrentUser">

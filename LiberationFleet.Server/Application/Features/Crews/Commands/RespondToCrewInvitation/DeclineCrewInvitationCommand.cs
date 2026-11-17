@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -11,6 +12,7 @@ public record DeclineCrewInvitationCommand(int InvitationId) : IRequest<CrewInvi
 public class DeclineCrewInvitationCommandHandler(
     ICurrentUserService currentUser,
     ICrewInvitationRepository invitationRepository,
+    INotificationRepository notificationRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<DeclineCrewInvitationCommand, CrewInvitationOperationResponse>
 {
     public async Task<CrewInvitationOperationResponse> Handle(
@@ -35,6 +37,11 @@ public class DeclineCrewInvitationCommandHandler(
 
         invitation.Status = CrewInvitationStatus.Declined;
         invitation.RespondedAt = DateTime.UtcNow;
+        await ActionRequiredNotificationResolver.ResolveRelatedForAllUsersAsync(
+            notificationRepository,
+            NotificationKind.JoinRequestFromCrew,
+            invitation.Id,
+            cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new CrewInvitationOperationResponse

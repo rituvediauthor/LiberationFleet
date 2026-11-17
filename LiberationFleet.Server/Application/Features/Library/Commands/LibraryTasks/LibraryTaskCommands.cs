@@ -406,6 +406,7 @@ public class DeleteLibraryTaskCommandHandler(
     ICrewMembershipRepository membershipRepository,
     ILibraryTaskRepository taskRepository,
     ICryptoRepository cryptoRepository,
+    INotificationRepository notificationRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<DeleteLibraryTaskCommand, LibraryTaskOperationResponse>
 {
@@ -450,6 +451,11 @@ public class DeleteLibraryTaskCommandHandler(
                 cancellationToken);
         }
 
+        await ActionRequiredNotificationResolver.ResolveQuestCompletionAsync(
+            notificationRepository,
+            task.CreatorUserId,
+            task.Id,
+            cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         foreach (var userId in claimantIds.Where(id => id != currentUser.UserId.Value))
@@ -609,6 +615,9 @@ public class CompleteLibraryTaskInstancesCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ILibraryTaskRepository taskRepository,
+    IUserRepository userRepository,
+    INotificationRepository notificationRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CompleteLibraryTaskInstancesCommand, LibraryTaskOperationResponse>
 {
     public async Task<LibraryTaskOperationResponse> Handle(
@@ -658,6 +667,13 @@ public class CompleteLibraryTaskInstancesCommandHandler(
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await LibraryTaskCompletionNotifications.NotifyCreatorAsync(
+            notificationService,
+            notificationRepository,
+            userRepository,
+            task,
+            completerUserId: currentUser.UserId.Value,
+            cancellationToken);
         return new LibraryTaskOperationResponse
         {
             Success = true,
@@ -680,6 +696,7 @@ public class ConfirmLibraryTaskInstancesCommandHandler(
     LibraryContributionGiftService contributionGiftService,
     IGiftRepository giftRepository,
     IMutualAidService mutualAidService,
+    INotificationRepository notificationRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<ConfirmLibraryTaskInstancesCommand, LibraryTaskConfirmResponse>
 {
     public async Task<LibraryTaskConfirmResponse> Handle(
@@ -781,6 +798,12 @@ public class ConfirmLibraryTaskInstancesCommandHandler(
             await unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
+        await LibraryTaskCompletionNotifications.ResolveIfNoPendingAsync(
+            notificationRepository,
+            task,
+            cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
         return new LibraryTaskConfirmResponse
         {
             Success = true,
@@ -800,6 +823,7 @@ public class RejectLibraryTaskInstancesCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ILibraryTaskRepository taskRepository,
+    INotificationRepository notificationRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<RejectLibraryTaskInstancesCommand, LibraryTaskOperationResponse>
 {
     public async Task<LibraryTaskOperationResponse> Handle(
@@ -866,6 +890,11 @@ public class RejectLibraryTaskInstancesCommandHandler(
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await LibraryTaskCompletionNotifications.ResolveIfNoPendingAsync(
+            notificationRepository,
+            task,
+            cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
         return new LibraryTaskOperationResponse
         {
             Success = true,
@@ -881,6 +910,9 @@ public class CompleteNoDeadlineLibraryTaskCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ILibraryTaskRepository taskRepository,
+    IUserRepository userRepository,
+    INotificationRepository notificationRepository,
+    NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<CompleteNoDeadlineLibraryTaskCommand, LibraryTaskOperationResponse>
 {
     public async Task<LibraryTaskOperationResponse> Handle(
@@ -960,6 +992,13 @@ public class CompleteNoDeadlineLibraryTaskCommandHandler(
             ],
             cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
+        await LibraryTaskCompletionNotifications.NotifyCreatorAsync(
+            notificationService,
+            notificationRepository,
+            userRepository,
+            task,
+            completerUserId: currentUser.UserId.Value,
+            cancellationToken);
 
         return new LibraryTaskOperationResponse
         {

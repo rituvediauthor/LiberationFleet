@@ -20,6 +20,7 @@
       <div
         class="notification-card"
         [class.unread]="!item.isRead"
+        [class.requires-action]="!!item.requiresAction && !item.isRead"
         [class.unavailable]="item.isTargetAvailable === false"
         [class.actionable]="isPendingSwitchOffer(item)"
         *ngFor="let item of items"
@@ -38,6 +39,7 @@
         </app-user-avatar>
         <div class="card-main">
           <h2>{{ item.title }}</h2>
+          <p class="action-needed" *ngIf="item.requiresAction && !item.isRead">Action needed</p>
           <p>{{ item.body }}</p>
           <div
             class="switch-offer-actions"

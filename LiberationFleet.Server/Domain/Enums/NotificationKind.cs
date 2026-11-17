@@ -72,5 +72,7 @@ public enum NotificationKind
     /// <summary>Fleet gift recorded where the viewer is the recipient.</summary>
     FleetGiftReceivedByMe = 63,
     /// <summary>Fleet gift recorded where the viewer is the intermediary.</summary>
-    FleetIntermediaryGift = 64
+    FleetIntermediaryGift = 64,
+    /// <summary>Someone submitted a quest completion awaiting the creator's confirm/deny.</summary>
+    LibraryTaskCompletionSubmitted = 65
 }

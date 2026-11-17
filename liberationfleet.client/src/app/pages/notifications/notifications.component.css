@@ -82,6 +82,19 @@
   background: var(--lf-color-accent-soft-bg-alt);
 }
 
+.notification-card.requires-action {
+  border-color: var(--lf-color-warning, #b45309);
+}
+
+.action-needed {
+  margin: 0 0 4px;
+  color: var(--lf-color-warning, #b45309);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
 .card-main {
   flex: 1;
   min-width: 0;

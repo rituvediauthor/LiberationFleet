@@ -130,6 +130,7 @@ public class NotificationService(
         int? actorUserId = null,
         bool omitActorIdentity = false,
         IReadOnlyCollection<int>? mentionedUserIds = null,
+        bool requiresAction = false,
         CancellationToken cancellationToken = default)
     {
         var userIds = await notificationRepository.GetCrewMemberUserIdsAsync(crewId, excludeUserId, cancellationToken);
@@ -144,7 +145,8 @@ public class NotificationService(
             RelatedEntityId = relatedEntityId,
             SecondaryEntityId = secondaryEntityId,
             ActorUserId = omitActorIdentity ? null : (actorUserId ?? excludeUserId),
-            RecipientWasMentioned = mentionedUserIds is not null && mentionedUserIds.Contains(userId)
+            RecipientWasMentioned = mentionedUserIds is not null && mentionedUserIds.Contains(userId),
+            RequiresAction = requiresAction
         });
 
         await NotifyUsersAsync(requests, cancellationToken);
@@ -307,6 +309,7 @@ public class NotificationService(
         NotificationKind.NewDirectMessage => "New direct message",
         NotificationKind.ChatMessageLiked => "Message liked",
         NotificationKind.LibraryTaskScheduleChanged => "Quest schedule updated",
+        NotificationKind.LibraryTaskCompletionSubmitted => "Quest completion submitted",
         NotificationKind.CrewJoinSwitchOffer => "Crew switch offer",
         _ => kind.ToString()
         };
@@ -368,6 +371,7 @@ public class NotificationService(
         SecondaryEntityId = request.SecondaryEntityId,
         ActorUserId = request.ActorUserId,
         IsRead = false,
+        RequiresAction = request.RequiresAction,
         CreatedAt = DateTime.UtcNow
     };
 }

@@ -160,7 +160,8 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
             return 0;
         }
 
-        var query = context.Notifications.Where(n => n.UserId == userId && !n.IsRead);
+        // Action-required rows stay unread until the related workflow resolves them.
+        var query = context.Notifications.Where(n => n.UserId == userId && !n.IsRead && !n.RequiresAction);
         if (hasPrefix && relatedEntityId.HasValue)
         {
             var prefix = actionUrlPrefix!.Trim();
@@ -199,9 +200,15 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
             query = query.Where(n => n.ActorUserId == actorId);
         }
 
-        return await query.ExecuteUpdateAsync(
-            setters => setters.SetProperty(n => n.IsRead, true),
-            cancellationToken);
+        // Workflow helpers (e.g. friend accept) use this to clear action-required rows too.
+        var notifications = await query.ToListAsync(cancellationToken);
+        foreach (var notification in notifications)
+        {
+            notification.IsRead = true;
+            notification.RequiresAction = false;
+        }
+
+        return notifications.Count;
     }
 
     public async Task AddAsync(Notification notification, CancellationToken cancellationToken = default) =>
@@ -222,21 +229,81 @@ public class NotificationRepository(ApplicationDbContext context) : INotificatio
             .Where(n => n.UserId == userId && n.Kind == kind && n.RelatedEntityId == relatedEntityId)
             .ToListAsync(cancellationToken);
 
-    public async Task MarkReadAsync(int notificationId, int userId, CancellationToken cancellationToken = default)
+    public async Task<bool> TryMarkReadAsync(int notificationId, int userId, CancellationToken cancellationToken = default)
     {
         var notification = await context.Notifications
             .FirstOrDefaultAsync(n => n.Id == notificationId && n.UserId == userId, cancellationToken);
-        if (notification is not null)
+        if (notification is null)
         {
-            notification.IsRead = true;
+            return false;
         }
+
+        if (notification.RequiresAction)
+        {
+            return false;
+        }
+
+        notification.IsRead = true;
+        return true;
     }
 
     public async Task MarkAllReadAsync(int userId, CancellationToken cancellationToken = default)
     {
         await context.Notifications
-            .Where(n => n.UserId == userId && !n.IsRead)
+            .Where(n => n.UserId == userId && !n.IsRead && !n.RequiresAction)
             .ExecuteUpdateAsync(setters => setters.SetProperty(n => n.IsRead, true), cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Notification>> GetUnreadRequiresActionForUserAsync(
+        int userId,
+        CancellationToken cancellationToken = default) =>
+        await context.Notifications
+            .Where(n => n.UserId == userId && !n.IsRead && n.RequiresAction)
+            .ToListAsync(cancellationToken);
+
+    public async Task<int> ResolveRequiresActionAsync(
+        int userId,
+        NotificationKind kind,
+        int relatedEntityId,
+        CancellationToken cancellationToken = default)
+    {
+        // Tracked updates (not ExecuteUpdate) so InMemory test providers work too.
+        var notifications = await context.Notifications
+            .Where(n =>
+                n.UserId == userId
+                && n.Kind == kind
+                && n.RelatedEntityId == relatedEntityId
+                && (n.RequiresAction || !n.IsRead))
+            .ToListAsync(cancellationToken);
+
+        foreach (var notification in notifications)
+        {
+            notification.RequiresAction = false;
+            notification.IsRead = true;
+        }
+
+        return notifications.Count;
+    }
+
+    public async Task<int> ResolveRequiresActionByRelatedAsync(
+        NotificationKind kind,
+        int relatedEntityId,
+        CancellationToken cancellationToken = default)
+    {
+        var notifications = await context.Notifications
+            .Where(n =>
+                n.Kind == kind
+                && n.RelatedEntityId == relatedEntityId
+                && (n.RequiresAction || !n.IsRead))
+            .ToListAsync(cancellationToken);
+
+        foreach (var notification in notifications)
+        {
+            notification.RequiresAction = false;
+            notification.IsRead = true;
+        }
+
+        return notifications.Count;
     }
 
     public async Task<IReadOnlyList<UserNotificationPreference>> GetPreferencesAsync(int userId, CancellationToken cancellationToken = default) =>

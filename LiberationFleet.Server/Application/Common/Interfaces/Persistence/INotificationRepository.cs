@@ -69,9 +69,37 @@ public interface INotificationRepository
         int relatedEntityId,
         CancellationToken cancellationToken = default);
 
-    Task MarkReadAsync(int notificationId, int userId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Marks a single notification read when it does not require an outstanding action.
+    /// Returns false when the row is missing or still requires action.
+    /// </summary>
+    Task<bool> TryMarkReadAsync(int notificationId, int userId, CancellationToken cancellationToken = default);
 
+    /// <summary>Marks all non-action-required unread notifications for the user.</summary>
     Task MarkAllReadAsync(int userId, CancellationToken cancellationToken = default);
+
+    /// <summary>Tracked unread rows that still have RequiresAction (for stale-action sweeps).</summary>
+    Task<IReadOnlyList<Notification>> GetUnreadRequiresActionForUserAsync(
+        int userId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Clears RequiresAction and marks matching notifications read (gift confirm, quest confirm, etc.).
+    /// </summary>
+    Task<int> ResolveRequiresActionAsync(
+        int userId,
+        NotificationKind kind,
+        int relatedEntityId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Clears RequiresAction and marks read for every user with matching kind + related entity
+    /// (crew-wide workflows such as broken-item confirmation).
+    /// </summary>
+    Task<int> ResolveRequiresActionByRelatedAsync(
+        NotificationKind kind,
+        int relatedEntityId,
+        CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<UserNotificationPreference>> GetPreferencesAsync(int userId, CancellationToken cancellationToken = default);
 

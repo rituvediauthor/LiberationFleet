@@ -11,6 +11,7 @@ public record MarkNotificationReadCommand(int NotificationId) : IRequest<Notific
 public class MarkNotificationReadCommandHandler(
     ICurrentUserService currentUser,
     INotificationRepository notificationRepository,
+    ActionRequiredNotificationLiveness actionRequiredLiveness,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<MarkNotificationReadCommand, NotificationOperationResponse>
 {
@@ -28,7 +29,24 @@ public class MarkNotificationReadCommandHandler(
             return new NotificationOperationResponse { Success = false, Message = "Notification not found." };
         }
 
-        await notificationRepository.MarkReadAsync(request.NotificationId, userId, cancellationToken);
+        if (notification.RequiresAction)
+        {
+            if (await actionRequiredLiveness.IsActionStillRequiredAsync(notification, cancellationToken))
+            {
+                var summaryBlocked = await notificationService.PushBadgeSummaryAndGetAsync(userId, cancellationToken);
+                return new NotificationOperationResponse
+                {
+                    Success = false,
+                    Message = "Complete the related action before marking this notification as read.",
+                    UnreadCount = summaryBlocked.UnreadCount
+                };
+            }
+
+            // Linked content deleted / workflow already finished — unlock then mark read.
+            notification.RequiresAction = false;
+        }
+
+        notification.IsRead = true;
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         var summary = await notificationService.PushBadgeSummaryAndGetAsync(userId, cancellationToken);

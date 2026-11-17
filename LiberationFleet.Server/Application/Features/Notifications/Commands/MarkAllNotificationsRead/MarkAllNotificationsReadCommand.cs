@@ -11,6 +11,7 @@ public record MarkAllNotificationsReadCommand() : IRequest<NotificationOperation
 public class MarkAllNotificationsReadCommandHandler(
     ICurrentUserService currentUser,
     INotificationRepository notificationRepository,
+    ActionRequiredNotificationLiveness actionRequiredLiveness,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<MarkAllNotificationsReadCommand, NotificationOperationResponse>
 {
@@ -22,6 +23,18 @@ public class MarkAllNotificationsReadCommandHandler(
         }
 
         var userId = currentUser.UserId.Value;
+        var staleActionRequired = await notificationRepository.GetUnreadRequiresActionForUserAsync(
+            userId,
+            cancellationToken);
+        foreach (var notification in staleActionRequired)
+        {
+            if (!await actionRequiredLiveness.IsActionStillRequiredAsync(notification, cancellationToken))
+            {
+                notification.RequiresAction = false;
+                notification.IsRead = true;
+            }
+        }
+
         await notificationRepository.MarkAllReadAsync(userId, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 

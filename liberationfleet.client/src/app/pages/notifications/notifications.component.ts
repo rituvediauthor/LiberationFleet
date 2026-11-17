@@ -102,11 +102,22 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     item.isTargetAvailable = available;
 
     if (!available) {
+      // Deleted/missing targets unlock action-required rows so they can be cleared.
+      if (!item.isRead) {
+        this.notificationService.markRead(item.id).subscribe({
+          next: result => {
+            if (result.success) {
+              item.requiresAction = false;
+              item.isRead = true;
+            }
+          }
+        });
+      }
       this.toastService.show('Content not available', 'info');
       return;
     }
 
-    if (!item.isRead) {
+    if (!item.isRead && !item.requiresAction) {
       this.notificationService.markRead(item.id).subscribe();
       item.isRead = true;
     }
@@ -140,6 +151,7 @@ export class NotificationsComponent implements OnInit, OnDestroy {
         item.secondaryEntityId = switchCrews
           ? CREW_JOIN_SWITCH_OFFER_SWITCHED
           : CREW_JOIN_SWITCH_OFFER_STAYED;
+        item.requiresAction = false;
         item.isRead = true;
         item.body = result.message || item.body;
         this.toastService.show(result.message || (switchCrews ? 'Switched crews.' : 'Staying in your crew.'), 'success');
@@ -158,7 +170,8 @@ export class NotificationsComponent implements OnInit, OnDestroy {
   markAllRead() {
     this.notificationService.markAllRead().subscribe({
       next: () => {
-        this.items = this.items.map(item => ({ ...item, isRead: true }));
+        // Server clears stale action-required rows (deleted content); refresh list.
+        this.loadNotifications();
       }
     });
   }

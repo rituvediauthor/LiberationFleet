@@ -1,11 +1,13 @@
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Application.Features.Library;
 
 public class LibraryRequestCleanupHelper(
     ILibraryRepository libraryRepository,
-    ICryptoRepository cryptoRepository)
+    ICryptoRepository cryptoRepository,
+    INotificationRepository notificationRepository)
 {
     public async Task CancelRequestWithMessagesAsync(
         int requestId,
@@ -23,6 +25,12 @@ public class LibraryRequestCleanupHelper(
         await cryptoRepository.DeleteEnvelopesAsync(
             EncryptedContentType.LibraryRequest,
             [requestId.ToString()],
+            cancellationToken);
+
+        await ActionRequiredNotificationResolver.ResolveRelatedForAllUsersAsync(
+            notificationRepository,
+            NotificationKind.NewLibraryRequest,
+            requestId,
             cancellationToken);
     }
 

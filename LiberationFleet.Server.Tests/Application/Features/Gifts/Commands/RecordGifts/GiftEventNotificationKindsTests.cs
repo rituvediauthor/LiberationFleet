@@ -55,4 +55,32 @@ public class GiftEventNotificationKindsTests
         NotificationService.GetKindLabel(NotificationKind.FleetGiftReceivedByMe).Should().Be("Fleet gifts given to me");
         NotificationService.GetKindLabel(NotificationKind.FleetIntermediaryGift).Should().Be("Fleet intermediary gifts");
     }
+
+    [Fact]
+    public void BuildRequest_FleetRecipientAndIntermediaryRequireAction()
+    {
+        GiftEventNotificationKinds.BuildRequest(
+            NotificationKind.FleetGiftReceivedByMe,
+            viewerUserId: 2,
+            crewId: 1,
+            giverName: "Ada",
+            recipientName: "Bob",
+            actionUrl: "/app/fleet/gift-log",
+            relatedEntityId: 9,
+            recipientUserId: 2,
+            giverUserId: 1,
+            fleet: true).RequiresAction.Should().BeTrue();
+
+        GiftEventNotificationKinds.BuildRequest(
+            NotificationKind.FleetIntermediaryGift,
+            viewerUserId: 3,
+            crewId: 1,
+            giverName: "Ada",
+            recipientName: "Bob",
+            actionUrl: "/app/fleet/gift-log",
+            relatedEntityId: 9,
+            recipientUserId: 2,
+            giverUserId: 1,
+            fleet: true).RequiresAction.Should().BeTrue();
+    }
 }

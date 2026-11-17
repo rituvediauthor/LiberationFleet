@@ -14,6 +14,7 @@ public class ConfirmLibraryUnitBrokenCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ILibraryRepository libraryRepository,
+    INotificationRepository notificationRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<ConfirmLibraryUnitBrokenCommand, LibraryUnitOperationResponse>
 {
@@ -45,6 +46,11 @@ public class ConfirmLibraryUnitBrokenCommandHandler(
         }
 
         trackedUnit.IsRetired = true;
+        await ActionRequiredNotificationResolver.ResolveRelatedForAllUsersAsync(
+            notificationRepository,
+            NotificationKind.LibraryUnitBrokenReported,
+            trackedUnit.Id,
+            cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await notificationService.NotifyUserAsync(new CreateNotificationRequest

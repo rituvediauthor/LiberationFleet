@@ -60,6 +60,7 @@ export type NotificationKind =
   | 'NewDirectMessage'
   | 'ChatMessageLiked'
   | 'LibraryTaskScheduleChanged'
+  | 'LibraryTaskCompletionSubmitted'
   | 'CrewJoinSwitchOffer';
 
 export type NotificationPreferenceCategory = 'Crew' | 'Fleet' | 'Friends';
@@ -140,6 +141,8 @@ export interface NotificationItem {
   actorUserId?: number | null;
   actorAvatarResourceId?: string | null;
   isRead: boolean;
+  /** When true, stay unread until the related confirm/deny/complete action finishes. */
+  requiresAction?: boolean;
   createdAt: string;
   isTargetAvailable?: boolean | null;
 }

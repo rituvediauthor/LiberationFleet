@@ -1,5 +1,16 @@
 /** Shared quest-value wording so "$X" is not mistaken for a cash payout. */
-export const QUEST_VALUE_CARD_NOTE = 'Contribution gift · not cash';
 
-export const QUEST_VALUE_EXPLANATION =
-  'On completion, this is recorded as a contribution gift that raises the completer’s priority score. Not a cash payout, and it does not use the completer’s reception or survival budgets.';
+export function formatQuestValueAmount(value: number): string {
+  return Number.isInteger(value) ? value.toString() : value.toFixed(2).replace(/\.?0+$/, '');
+}
+
+export function questValueCardNote(value: number): string {
+  return `Completion counts as a $${formatQuestValueAmount(value)} gift.`;
+}
+
+export function questValueExplanation(value: number): string {
+  return (
+    `Completion counts as a $${formatQuestValueAmount(value)} contribution from the quest doer, ` +
+    `but does not reduce the quest giver's amount needed in survival thresholds and reception cycles.`
+  );
+}

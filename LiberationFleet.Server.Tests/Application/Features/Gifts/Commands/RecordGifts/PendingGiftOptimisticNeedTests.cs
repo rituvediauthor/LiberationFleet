@@ -167,6 +167,7 @@ public class PendingGiftOptimisticNeedTests
             new GiftRepository(fixture.Context),
             new CrewPaymentPlatformRepository(fixture.Context),
             fixture.Service,
+            new NotificationRepository(fixture.Context),
             fixture.Context,
             NullLogger<VerifyGiftCommandHandler>.Instance);
 
@@ -294,6 +295,7 @@ public class PendingGiftOptimisticNeedTests
             new GiftRepository(fixture.Context),
             new CrewPaymentPlatformRepository(fixture.Context),
             fixture.Service,
+            new NotificationRepository(fixture.Context),
             fixture.Context,
             NullLogger<VerifyGiftCommandHandler>.Instance);
 

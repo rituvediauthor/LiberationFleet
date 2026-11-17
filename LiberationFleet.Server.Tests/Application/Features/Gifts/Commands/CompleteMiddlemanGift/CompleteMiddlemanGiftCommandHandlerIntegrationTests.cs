@@ -67,6 +67,7 @@ public class CompleteMiddlemanGiftCommandHandlerIntegrationTests
             giftRepository,
             crewPaymentPlatformRepository,
             fixture.Service,
+            new NotificationRepository(fixture.Context),
             fixture.Context,
             NullLogger<VerifyGiftCommandHandler>.Instance);
 

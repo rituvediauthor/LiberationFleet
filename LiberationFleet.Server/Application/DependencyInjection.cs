@@ -59,6 +59,7 @@ public static class DependencyInjection
         services.AddScoped<LibraryPriorityTierService>();
         services.AddScoped<LibraryMemberCleanupService>();
         services.AddScoped<NotificationService>();
+        services.AddScoped<ActionRequiredNotificationLiveness>();
         services.AddScoped<NotificationBadgeSummaryService>();
         services.AddScoped<ContentMentionService>();
         services.AddScoped<ContentTenureService>();

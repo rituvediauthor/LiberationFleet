@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Gifts.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Domain.Enums;
@@ -21,6 +22,7 @@ public class VerifyGiftCommandHandler(
     IGiftRepository giftRepository,
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
     IMutualAidService mutualAidService,
+    INotificationRepository notificationRepository,
     IUnitOfWork unitOfWork,
     ILogger<VerifyGiftCommandHandler> logger) : IRequestHandler<VerifyGiftCommand, GiftOperationResponse>
 {
@@ -99,7 +101,26 @@ public class VerifyGiftCommandHandler(
                 HandleConfirmNotReceived(gift);
                 break;
             case GiftVerificationAction.CompleteTransfer:
-                return await HandleCompleteTransferAsync(gift, userId, membership.CrewId, request.PaymentPlatformId, cancellationToken);
+            {
+                var completeResult = await HandleCompleteTransferAsync(
+                    gift,
+                    userId,
+                    membership.CrewId,
+                    request.PaymentPlatformId,
+                    cancellationToken);
+                if (completeResult.Success && gift.MiddlemanUserId is int completeMiddlemanId)
+                {
+                    await ActionRequiredNotificationResolver.ResolveGiftForIntermediaryAsync(
+                        notificationRepository,
+                        completeMiddlemanId,
+                        gift.Id,
+                        fleet: false,
+                        cancellationToken);
+                    await unitOfWork.SaveChangesAsync(cancellationToken);
+                }
+
+                return completeResult;
+            }
             case GiftVerificationAction.CantComplete:
                 if (gift.Type != GiftType.Initiated)
                 {
@@ -120,6 +141,7 @@ public class VerifyGiftCommandHandler(
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var receptionApplyFailed = false;
         if (request.Action is GiftVerificationAction.ConfirmReceived)
         {
             try
@@ -134,38 +156,21 @@ public class VerifyGiftCommandHandler(
                     gift.Id,
                     membership.CrewId);
 
-                // Verification is already committed. Retry once, then still return success so the
-                // UI does not dead-end with Verified + !ReceptionApplied and no retry actions.
+                // Verification is already committed. Retry once, then continue so action-required
+                // notifications still unlock even when reception credit lags.
                 try
                 {
                     await ApplyReceptionAfterConfirmAsync(gift, cancellationToken);
                 }
                 catch (Exception retryEx)
                 {
+                    receptionApplyFailed = true;
                     logger.LogError(
                         retryEx,
                         "Post-verify reception apply retry failed for gift {GiftId} in crew {CrewId}",
                         gift.Id,
                         membership.CrewId);
                 }
-
-                var savedAfterFail = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
-                var applied = savedAfterFail?.ReceptionApplied == true;
-                return new GiftOperationResponse
-                {
-                    Success = true,
-                    Message = applied
-                        ? "Gift verification updated."
-                        : "Gift was verified, but reception credit could not be applied. Try confirming again.",
-                    Entry = savedAfterFail is not null
-                        ? GiftMapper.MapGift(
-                            savedAfterFail,
-                            viewerUserId: userId,
-                            completedChild: completedChild,
-                            initiatedParent: initiatedParent,
-                            isAccountant: canRoleVerify)
-                        : null
-                };
             }
         }
 
@@ -186,11 +191,20 @@ public class VerifyGiftCommandHandler(
             }
         }
 
+        await ResolveActionRequiredGiftNotificationsAsync(gift, request.Action, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+
         var saved = await giftRepository.GetByIdWithUsersAsync(gift.Id, cancellationToken);
+        var receptionApplied = saved?.ReceptionApplied == true;
+        var message = request.Action is GiftVerificationAction.ConfirmReceived
+            && receptionApplyFailed
+            && !receptionApplied
+            ? "Gift was verified, but reception credit could not be applied. Try confirming again."
+            : "Gift verification updated.";
         return new GiftOperationResponse
         {
             Success = true,
-            Message = "Gift verification updated.",
+            Message = message,
             Entry = saved is not null
                 ? GiftMapper.MapGift(
                     saved,
@@ -200,6 +214,72 @@ public class VerifyGiftCommandHandler(
                     isAccountant: canRoleVerify)
                 : null
         };
+    }
+
+    private async Task ResolveActionRequiredGiftNotificationsAsync(
+        Gift gift,
+        GiftVerificationAction action,
+        CancellationToken cancellationToken)
+    {
+        switch (action)
+        {
+            case GiftVerificationAction.ConfirmReceived:
+                if (gift.Type == GiftType.Initiated
+                    && gift.VerificationStatus == GiftVerificationStatus.MiddlemanReceivedFunds)
+                {
+                    // Middleman acknowledged inbound funds; they still must complete the transfer.
+                    break;
+                }
+
+                await ActionRequiredNotificationResolver.ResolveGiftForRecipientAsync(
+                    notificationRepository,
+                    gift.RecipientUserId,
+                    gift.Id,
+                    fleet: false,
+                    cancellationToken);
+                if (gift.InitiatedGiftId is int parentGiftId)
+                {
+                    await ActionRequiredNotificationResolver.ResolveGiftForRecipientAsync(
+                        notificationRepository,
+                        gift.RecipientUserId,
+                        parentGiftId,
+                        fleet: false,
+                        cancellationToken);
+                }
+                break;
+
+            case GiftVerificationAction.ConfirmNotReceived:
+                await ActionRequiredNotificationResolver.ResolveGiftWorkflowAsync(
+                    notificationRepository,
+                    gift.Id,
+                    gift.RecipientUserId,
+                    gift.MiddlemanUserId,
+                    fleet: false,
+                    cancellationToken);
+                if (gift.InitiatedGiftId is int failedParentId)
+                {
+                    await ActionRequiredNotificationResolver.ResolveGiftWorkflowAsync(
+                        notificationRepository,
+                        failedParentId,
+                        gift.RecipientUserId,
+                        gift.MiddlemanUserId,
+                        fleet: false,
+                        cancellationToken);
+                }
+                break;
+
+            case GiftVerificationAction.CantComplete:
+                if (gift.MiddlemanUserId is int intermediaryId)
+                {
+                    await ActionRequiredNotificationResolver.ResolveGiftForIntermediaryAsync(
+                        notificationRepository,
+                        intermediaryId,
+                        gift.Id,
+                        fleet: false,
+                        cancellationToken);
+                }
+                break;
+        }
     }
 
     private static void HandleConfirmReceived(Gift gift, int verifiedByUserId)

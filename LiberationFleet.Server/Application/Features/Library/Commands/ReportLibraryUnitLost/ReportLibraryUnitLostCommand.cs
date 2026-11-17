@@ -1,6 +1,8 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications;
+using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
 namespace LiberationFleet.Server.Application.Features.Library.Commands.ReportLibraryUnitLost;
@@ -11,6 +13,7 @@ public class ReportLibraryUnitLostCommandHandler(
     ICurrentUserService currentUser,
     ICrewMembershipRepository membershipRepository,
     ILibraryRepository libraryRepository,
+    INotificationRepository notificationRepository,
     IUnitOfWork unitOfWork) : IRequestHandler<ReportLibraryUnitLostCommand, LibraryUnitOperationResponse>
 {
     public async Task<LibraryUnitOperationResponse> Handle(
@@ -41,7 +44,13 @@ public class ReportLibraryUnitLostCommandHandler(
         }
 
         trackedUnit.IsRetired = true;
+        trackedUnit.BrokenPendingConfirmation = false;
         trackedUnit.Offering.UpdatedAt = DateTime.UtcNow;
+        await ActionRequiredNotificationResolver.ResolveRelatedForAllUsersAsync(
+            notificationRepository,
+            NotificationKind.LibraryUnitBrokenReported,
+            trackedUnit.Id,
+            cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new LibraryUnitOperationResponse

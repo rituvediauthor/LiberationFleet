@@ -2,6 +2,7 @@ using LiberationFleet.Server.Application.Common;
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Crews.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -19,6 +20,7 @@ public class SubmitJoinRequestCommandHandler(
     IRuleRepository ruleRepository,
     ICrewInvitationRepository invitationRepository,
     IFleetRepository fleetRepository,
+    INotificationRepository notificationRepository,
     CrewJoinRequestProposalService joinRequestProposalService,
     IUnitOfWork unitOfWork) : IRequestHandler<SubmitJoinRequestCommand, JoinRequestOperationResponse>
 {
@@ -118,6 +120,16 @@ public class SubmitJoinRequestCommandHandler(
             crew.Id,
             acceptedRuleIds,
             cancellationToken);
+
+        // Invitation response is done once the join request is submitted; unlock that inbox row.
+        if (result.Success && invitation is not null)
+        {
+            await ActionRequiredNotificationResolver.ResolveRelatedForAllUsersAsync(
+                notificationRepository,
+                NotificationKind.JoinRequestFromCrew,
+                invitation.Id,
+                cancellationToken);
+        }
 
         // Do not mark the invitation Accepted here — wait until the join proposal is applied.
         await unitOfWork.SaveChangesAsync(cancellationToken);

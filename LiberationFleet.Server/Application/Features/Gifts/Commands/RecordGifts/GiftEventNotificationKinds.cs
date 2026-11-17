@@ -49,6 +49,10 @@ public static class GiftEventNotificationKinds
         bool fleet)
     {
         var (title, body) = BuildCopy(kind, giverName, recipientName, fleet);
+        var requiresAction = kind is NotificationKind.GiftReceivedByMe
+            or NotificationKind.FleetGiftReceivedByMe
+            or NotificationKind.IntermediaryGift
+            or NotificationKind.FleetIntermediaryGift;
         return new CreateNotificationRequest
         {
             UserId = viewerUserId,
@@ -59,7 +63,8 @@ public static class GiftEventNotificationKinds
             ActionUrl = actionUrl,
             RelatedEntityId = relatedEntityId,
             SecondaryEntityId = recipientUserId,
-            ActorUserId = giverUserId
+            ActorUserId = giverUserId,
+            RequiresAction = requiresAction
         };
     }
 

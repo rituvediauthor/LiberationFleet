@@ -87,7 +87,8 @@ public class InviteCrewmateCommandHandler(
             Body = $"{inviterName} invited you to join {crew.Name}.",
             ActionUrl = $"/app/crew/invitations/{invitation.Id}",
             RelatedEntityId = invitation.Id,
-            ActorUserId = inviterId
+            ActorUserId = inviterId,
+            RequiresAction = true
         }, cancellationToken);
 
         return new CrewInvitationOperationResponse

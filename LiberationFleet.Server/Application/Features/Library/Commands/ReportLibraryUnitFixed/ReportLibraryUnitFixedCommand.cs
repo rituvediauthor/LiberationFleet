@@ -15,6 +15,7 @@ public class ReportLibraryUnitFixedCommandHandler(
     ICrewMembershipRepository membershipRepository,
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
+    INotificationRepository notificationRepository,
     NotificationService notificationService,
     IUnitOfWork unitOfWork) : IRequestHandler<ReportLibraryUnitFixedCommand, LibraryUnitOperationResponse>
 {
@@ -54,6 +55,11 @@ public class ReportLibraryUnitFixedCommandHandler(
             [trackedUnit.Id.ToString()],
             cancellationToken);
 
+        await ActionRequiredNotificationResolver.ResolveRelatedForAllUsersAsync(
+            notificationRepository,
+            NotificationKind.LibraryUnitBrokenReported,
+            trackedUnit.Id,
+            cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
 
         await notificationService.NotifyCrewAsync(

@@ -70,6 +70,7 @@ public class RecordGiftsCommandHandlerIntegrationTests
             giftRepository,
             crewPaymentPlatformRepository,
             fixture.Service,
+            new NotificationRepository(fixture.Context),
             fixture.Context,
             NullLogger<VerifyGiftCommandHandler>.Instance);
 
@@ -158,6 +159,7 @@ public class RecordGiftsCommandHandlerIntegrationTests
             giftRepository,
             crewPaymentPlatformRepository,
             fixture.Service,
+            new NotificationRepository(fixture.Context),
             fixture.Context,
             NullLogger<VerifyGiftCommandHandler>.Instance);
 

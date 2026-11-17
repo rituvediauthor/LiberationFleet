@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Infrastructure.Background;
@@ -12,6 +13,7 @@ internal static class GiftAutoVerifySweep
     {
         var gifts = sp.GetRequiredService<IGiftRepository>();
         var mutualAid = sp.GetRequiredService<IMutualAidService>();
+        var notifications = sp.GetRequiredService<INotificationRepository>();
         var unitOfWork = sp.GetRequiredService<IUnitOfWork>();
 
         var cutoff = DateTime.UtcNow - AutoVerifyAfter;
@@ -30,6 +32,24 @@ internal static class GiftAutoVerifySweep
             if (!gift.ReceptionApplied)
             {
                 await mutualAid.ApplyGiftReceptionAsync(gift, cancellationToken);
+            }
+
+            await ActionRequiredNotificationResolver.ResolveGiftWorkflowAsync(
+                notifications,
+                gift.Id,
+                gift.RecipientUserId,
+                gift.MiddlemanUserId,
+                fleet: false,
+                cancellationToken);
+            if (gift.InitiatedGiftId is int parentGiftId)
+            {
+                await ActionRequiredNotificationResolver.ResolveGiftWorkflowAsync(
+                    notifications,
+                    parentGiftId,
+                    gift.RecipientUserId,
+                    gift.MiddlemanUserId,
+                    fleet: false,
+                    cancellationToken);
             }
 
             applied++;

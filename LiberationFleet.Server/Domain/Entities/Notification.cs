@@ -15,6 +15,11 @@ public class Notification
     public int? SecondaryEntityId { get; set; }
     public int? ActorUserId { get; set; }
     public bool IsRead { get; set; }
+    /// <summary>
+    /// When true, the recipient must complete a related action before this can be marked read
+    /// (gift confirm, intermediary complete-transfer, quest confirm/deny, switch/stay offer).
+    /// </summary>
+    public bool RequiresAction { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public User User { get; set; } = null!;

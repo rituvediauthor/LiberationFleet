@@ -194,6 +194,7 @@ export function resolveNotificationArea(item: NotificationItem): CrewNotificatio
     case 'LibraryUnitBrokenConfirmed':
     case 'LibraryUnitReportedFixed':
     case 'LibraryTaskScheduleChanged':
+    case 'LibraryTaskCompletionSubmitted':
       return 'crewLibrary';
     case 'FriendRequest':
     case 'FriendRequestAccepted':

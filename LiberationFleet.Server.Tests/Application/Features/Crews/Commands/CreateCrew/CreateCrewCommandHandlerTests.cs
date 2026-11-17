@@ -260,9 +260,11 @@ public class CreateCrewCommandHandlerTests
         var libraryCleanup = new LibraryMemberCleanupService(
             libraryRepository.Object,
             Mock.Of<ICryptoRepository>(),
+            Mock.Of<INotificationRepository>(),
             new LibraryRequestCleanupHelper(
                 libraryRepository.Object,
-                Mock.Of<ICryptoRepository>()));
+                Mock.Of<ICryptoRepository>(),
+                Mock.Of<INotificationRepository>()));
         var emptyCrewCleanup = new EmptyCrewCleanupService(
             membershipRepository.Object,
             CreateCrewCleanupRepositoryMock().Object);

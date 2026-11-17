@@ -1,6 +1,7 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
+using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Domain.Enums;
 using MediatR;
 
@@ -13,6 +14,7 @@ public class DeleteLibraryOfferingCommandHandler(
     ICrewMembershipRepository membershipRepository,
     ILibraryRepository libraryRepository,
     ICryptoRepository cryptoRepository,
+    INotificationRepository notificationRepository,
     LibraryRequestCleanupHelper requestCleanupHelper,
     IUnitOfWork unitOfWork) : IRequestHandler<DeleteLibraryOfferingCommand, LibraryOfferingOperationResponse>
 {
@@ -75,6 +77,13 @@ public class DeleteLibraryOfferingCommandHandler(
             {
                 unit.IsRetired = true;
             }
+
+            unit.BrokenPendingConfirmation = false;
+            await ActionRequiredNotificationResolver.ResolveRelatedForAllUsersAsync(
+                notificationRepository,
+                NotificationKind.LibraryUnitBrokenReported,
+                unit.Id,
+                cancellationToken);
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);

@@ -255,8 +255,15 @@ public class AccountRecoveryMergeServiceTests
         var fleetRepository = new FleetRepository(fixture.Context);
         var libraryRepository = new LibraryRepository(fixture.Context);
         var cryptoRepository = new CryptoRepository(fixture.Context);
-        var requestCleanup = new LibraryRequestCleanupHelper(libraryRepository, cryptoRepository);
-        var libraryCleanup = new LibraryMemberCleanupService(libraryRepository, cryptoRepository, requestCleanup);
+        var requestCleanup = new LibraryRequestCleanupHelper(
+            libraryRepository,
+            cryptoRepository,
+            new NotificationRepository(fixture.Context));
+        var libraryCleanup = new LibraryMemberCleanupService(
+            libraryRepository,
+            cryptoRepository,
+            new NotificationRepository(fixture.Context),
+            requestCleanup);
         var contentTenure = new ContentTenureService(
             new ContentTenureRepository(fixture.Context),
             membershipRepository,
