@@ -71,7 +71,7 @@ Invoke-RestMethod -Method GET -Uri "$base/api/reports/ops?limit=50" -Headers @{
   "X-Report-Vendor-Key" = $key
 } | ConvertTo-Json -Depth 6
 ```
-
+~
 6. Press **Enter**.
 7. If the window says `401` or `403`, the key is wrong. Copy the key from the password manager again and repeat step 5. Do not continue.
 8. If the result is `[]` or an empty list, you are done for this check. Close the window.
