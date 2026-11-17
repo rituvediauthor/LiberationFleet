@@ -147,6 +147,8 @@ describe('CrewDashboardPreviewComponent', () => {
 
     buttons[1].click();
     fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.preview-quest .value')?.textContent?.trim())
+      .toBe('Completion counts as a $15 gift.');
     fixture.nativeElement.querySelector('.dash-preview')?.click();
     expect(spy).toHaveBeenCalledWith(jasmine.objectContaining({
       libraryKind: 'quest'

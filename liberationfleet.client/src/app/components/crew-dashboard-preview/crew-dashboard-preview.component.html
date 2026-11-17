@@ -76,7 +76,7 @@
       <p class="meta">{{ p.task.creatorUsername }}</p>
       <h2 class="title">{{ p.task.title }}</h2>
       <p *ngIf="p.dueLabel" class="due">{{ p.dueLabel }}</p>
-      <p class="value">${{ p.task.value | number:'1.0-2' }}</p>
+      <p class="value">{{ questValueNote(p.task.value) }}</p>
     </article>
 
   </div>

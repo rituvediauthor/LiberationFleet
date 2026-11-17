@@ -14,6 +14,7 @@ import {
 import { LibraryItemCardComponent } from '../library-item-card/library-item-card.component';
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 import { formatDashboardTimestamp } from '../../utils/dashboard-preview.util';
+import { questValueCardNote } from '../../pages/library/library-tasks/library-task-copy';
 
 @Component({
   selector: 'app-crew-dashboard-preview',
@@ -82,6 +83,10 @@ export class CrewDashboardPreviewComponent implements OnChanges {
 
   formatTime(date: Date | string | null | undefined): string {
     return formatDashboardTimestamp(date);
+  }
+
+  questValueNote(value: number): string {
+    return questValueCardNote(value);
   }
 
   onOpen(): void {
