@@ -382,6 +382,8 @@ data/
 **/database/backups/
 appsettings.*.local.json
 **/secrets.json
+tools/seed-review-demo/CREDENTIALS.local.md
+
 # Firebase / FCM — download from Firebase Console; do not commit
 **/google-services.json
 **/GoogleService-Info.plist

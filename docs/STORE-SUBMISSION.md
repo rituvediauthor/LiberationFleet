@@ -31,6 +31,7 @@ Bundle / application ID: **`com.liberationfleet.app`**
 6. Prepare icon (1024²), splash, and screenshots.
 7. Smoke-test on a **physical device**: login, chat, attach image, voice join, open donation Checkout.
 8. Create a **demo account** (email/password) and a small test crew for reviewers.
+   Preferred: run the rich private-fleet seed in [`tools/seed-review-demo/README.md`](../tools/seed-review-demo/README.md) (`node seed.mjs` with `LF_API_BASE` set). Credentials and recovery phrases: [`tools/seed-review-demo/CREDENTIALS.md`](../tools/seed-review-demo/CREDENTIALS.md).
 
 ---
 
@@ -1258,15 +1259,22 @@ Do this only after an internal TestFlight smoke test passed on a physical iPhone
 
 ```
 Demo account (email/password sign-in; no Sign in with Apple):
-Email: <demo email>
-Password: <demo password>
+Email: maya.chen@lf-review.test
+Password: ReviewDemo!Harbor26
 
-This account is already in a test crew. Please:
-1. Sign in.
-2. Open the crew.
-3. Open chat and send a message.
-4. Optional: join the crew voice channel (microphone permission) and leave.
-5. Optional: open the donation screen. Donations are voluntary contributions to Liberation Fleet Co. for hosting and development. Checkout is Stripe in the system browser. They are not in-app purchases and they do not unlock features. Peer mutual aid is logged in the app and paid on Venmo, PayPal, Cash App, or Zelle — Liberation Fleet does not hold or transmit that money.
+Encryption unlock (12-word recovery phrase — required once after sign-in to read chat / LoT / proposals):
+abandon ability able about above absent absorb abstract absurd abuse access accident
+
+This account is captain of the private crew **Cedar Circle**, inside the private fleet **Harbor Mutual Aid** (second private crew: **River House**). Seeded data includes chat, verified gift log, Library of Things offerings + a quest, and an open proposal.
+
+Please:
+1. Sign in as Maya and unlock encryption with the recovery phrase above (you may choose Remember on this device).
+2. Open **Cedar Circle**.
+3. Open **General** chat (read seeded messages; send one if you like).
+4. Open the **gift log**, then **Library of Things**, then **Proposals** (vote on the childcare-channel proposal if still pending).
+5. Open fleet **Harbor Mutual Aid** to see multi-crew coordination.
+6. Optional: join a crew voice channel (microphone permission) and leave.
+7. Optional: open the donation screen. Donations are voluntary contributions to Liberation Fleet Co. for hosting and development. Checkout is Stripe in the system browser. They are not in-app purchases and they do not unlock features. Peer mutual aid is logged in the app and paid on Venmo, PayPal, Cash App, or Zelle — Liberation Fleet does not hold or transmit that money.
 
 Message, post, and most media bodies are end-to-end encrypted. Reviewers can use the app’s own UI (chat, gift log, settings). Operators cannot read encrypted message bodies.
 
