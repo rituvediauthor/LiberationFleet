@@ -6,15 +6,30 @@ using LiberationFleet.Server.Domain.Enums;
 
 namespace LiberationFleet.Server.Application.Features.Library;
 
-public sealed record CreatorContributionGiftDetails(
-    int GiftId,
-    int ContributorUserId,
-    string ContributorUsername,
-    decimal Amount,
-    string ItemTitle,
-    int RecipientUserId,
-    string RecipientUsername,
-    int CrewGiftRecipientUserId);
+/// <summary>
+/// Holds the tracked <see cref="Gift"/> so <see cref="GiftId"/> is correct after SaveChanges
+/// (identity columns are 0 until the insert commits).
+/// </summary>
+public sealed class CreatorContributionGiftDetails(
+    Gift gift,
+    int contributorUserId,
+    string contributorUsername,
+    decimal amount,
+    string itemTitle,
+    int recipientUserId,
+    string recipientUsername,
+    int crewGiftRecipientUserId)
+{
+    public Gift Gift { get; } = gift;
+    public int GiftId => Gift.Id;
+    public int ContributorUserId { get; } = contributorUserId;
+    public string ContributorUsername { get; } = contributorUsername;
+    public decimal Amount { get; } = amount;
+    public string ItemTitle { get; } = itemTitle;
+    public int RecipientUserId { get; } = recipientUserId;
+    public string RecipientUsername { get; } = recipientUsername;
+    public int CrewGiftRecipientUserId { get; } = crewGiftRecipientUserId;
+}
 
 public class LibraryContributionGiftService(
     ICrewPaymentPlatformRepository crewPaymentPlatformRepository,
@@ -79,7 +94,7 @@ public class LibraryContributionGiftService(
 
         var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
         return new CreatorContributionGiftDetails(
-            gift.Id,
+            gift,
             offering.CreatorUserId,
             offering.CreatorUser?.Username ?? "Crewmate",
             amount,
@@ -124,7 +139,7 @@ public class LibraryContributionGiftService(
 
         var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
         return new CreatorContributionGiftDetails(
-            gift.Id,
+            gift,
             completerUserId,
             completerUsername,
             amount,
@@ -161,7 +176,7 @@ public class LibraryContributionGiftService(
 
         var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
         return new CreatorContributionGiftDetails(
-            gift.Id,
+            gift,
             offering.CreatorUserId,
             offering.CreatorUser?.Username ?? "Crewmate",
             amount,
@@ -190,7 +205,7 @@ public class LibraryContributionGiftService(
             cancellationToken);
 
         return new CreatorContributionGiftDetails(
-            gift.Id,
+            gift,
             offering.CreatorUserId,
             offering.CreatorUser?.Username ?? "Crewmate",
             amount,
@@ -324,7 +339,7 @@ public class LibraryContributionGiftService(
 
         var crewRecipient = await crewGiftRecipientService.GetOrCreateAsync(crewId, cancellationToken);
         return new CreatorContributionGiftDetails(
-            gift.Id,
+            gift,
             completerUserId,
             completerUsername,
             value,

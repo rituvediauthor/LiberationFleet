@@ -137,19 +137,21 @@ export class GiftLogCryptoService {
     },
     crewId: number
   ): Promise<void> {
+    // Peer gift to the receiving crewmate (first durable transfer / stock use), not "the crew".
+    const recipientName = gift.recipientUsername || GiftLogCryptoService.crewGiftRecipientName;
     const message = this.buildLibraryOfThingsMessage(
       gift.contributorUsername,
       gift.amount,
       gift.itemTitle,
-      GiftLogCryptoService.crewGiftRecipientName
+      recipientName
     );
     await this.encryptAndStoreEntry({
       id: gift.giftId,
       type: 'direct',
       giverId: gift.contributorUserId,
       giverName: gift.contributorUsername,
-      recipientId: gift.crewGiftRecipientUserId,
-      recipientName: GiftLogCryptoService.crewGiftRecipientName,
+      recipientId: gift.recipientUserId || gift.crewGiftRecipientUserId,
+      recipientName,
       amount: gift.amount,
       platform: 'Library of Things',
       timestamp: new Date(),

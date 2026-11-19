@@ -65,8 +65,11 @@ export class AuthService {
   private notificationService = inject(NotificationService);
   private profileLocation = inject(ProfileLocationService);
   private pushNotifications = inject(PushNotificationRegistrationService);
-  private notificationHub = inject(NotificationHubService);
-  /** Lazy: avoid construction-time cycles with forum/crypto graph. */
+  /**
+   * Lazy: AuthService ↔ NotificationHubService is a construction cycle
+   * (hub needs getToken; logout needs hub.disconnect). Eager inject() left the
+   * hub holding an incomplete AuthService proxy → getToken is not a function.
+   */
   private injector = inject(Injector);
 
   constructor(
@@ -204,7 +207,7 @@ export class AuthService {
 
   logout(): void {
     void this.pushNotifications.stopAndUnregister();
-    void this.notificationHub.disconnect();
+    void this.injector.get(NotificationHubService).disconnect();
     this.cancelEncryptionUnlockRetry();
     this.removeToken();
     this.storage.remove(StorageScope.Session, SESSION_RECOVERY_PHRASE_STORAGE_KEY);

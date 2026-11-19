@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Library.Contracts;
 using LiberationFleet.Server.Application.Features.Notifications;
 using LiberationFleet.Server.Application.Features.Notifications.Contracts;
@@ -747,7 +748,7 @@ public class ConfirmLibraryTaskInstancesCommandHandler(
             };
         }
 
-        var gifts = new List<LibraryCreatorContributionGiftDto>();
+        var awarded = new List<(LibraryTaskInstance Instance, CreatorContributionGiftDetails Gift)>();
         var utcNow = DateTime.UtcNow;
         var questTitle = !string.IsNullOrWhiteSpace(request.TitlePreview)
             ? request.TitlePreview.Trim()
@@ -767,18 +768,31 @@ public class ConfirmLibraryTaskInstancesCommandHandler(
                 cancellationToken);
             if (gift is not null)
             {
-                instance.ContributionGiftId = gift.GiftId;
-                gifts.Add(LibraryTaskMapper.ToGiftDto(gift));
+                awarded.Add((instance, gift));
             }
 
             instance.Status = LibraryTaskInstanceStatus.Confirmed;
             instance.ConfirmedAt = utcNow;
         }
 
+        // Identity Gift.Id values are assigned on save — stamp ContributionGiftId / DTOs after.
         await unitOfWork.SaveChangesAsync(cancellationToken);
-        foreach (var gift in gifts)
+
+        var gifts = new List<LibraryCreatorContributionGiftDto>(awarded.Count);
+        foreach (var (instance, gift) in awarded)
         {
-            var receptionRecord = await giftRepository.GetByIdWithUsersAsync(gift.GiftId, cancellationToken);
+            instance.ContributionGiftId = gift.GiftId;
+            gifts.Add(LibraryTaskMapper.ToGiftDto(gift));
+        }
+
+        if (awarded.Count > 0)
+        {
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        foreach (var giftDto in gifts)
+        {
+            var receptionRecord = await giftRepository.GetByIdWithUsersAsync(giftDto.GiftId, cancellationToken);
             if (receptionRecord is not null)
             {
                 await mutualAidService.ApplyGiftReceptionAsync(receptionRecord, cancellationToken);

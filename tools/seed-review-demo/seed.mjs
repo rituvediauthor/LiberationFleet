@@ -437,7 +437,182 @@ async function sendFleetChat(session, roomId, fleetId, body) {
   if (!result?.success) fail('Send fleet chat failed', result);
 }
 
-async function recordAndVerifyGift(giver, recipient, amount, message) {
+function giftDtoId(gift) {
+  const id = gift?.giftId ?? gift?.id ?? gift?.GiftId ?? 0;
+  return Number(id) || 0;
+}
+
+/** Match GiftLogCryptoService.encryptAndStoreEntry / server FormatMessage after verify. */
+async function encryptGiftLogEntry(session, crewId, entry) {
+  if (!entry?.id) return;
+  const material = await ensureCrewKey(session, crewId);
+  const encrypted = await cryptoLib.encryptJson(material.aes, {
+    message: entry.message,
+    giverName: entry.giverName,
+    recipientName: entry.recipientName,
+    middlemanName: entry.middlemanName ?? null,
+    platform: entry.platform
+  });
+  const result = await api('/api/crypto/content', {
+    method: 'PUT',
+    token: session.token,
+    body: {
+      contentType: 'GiftLogEntry',
+      resourceId: String(entry.id),
+      crewId,
+      keyVersion: material.keyVersion,
+      nonce: encrypted.nonce,
+      ciphertext: encrypted.ciphertext
+    },
+    okStatuses: [200, 400]
+  });
+  if (!result?.success) {
+    fail(`Encrypt gift-log #${entry.id} failed`, result);
+  }
+}
+
+function lotMessage(giverName, amount, itemTitle, recipientName) {
+  const amountText = Number.isInteger(amount) ? String(amount) : String(amount).replace(/\.?0+$/, '');
+  const item = (itemTitle || 'an offering').trim();
+  return `${giverName} gave $${amountText} in ${item} to ${recipientName} via the Library of Things`;
+}
+
+function questMessage(contributorUsername, recipientUsername, amount, itemTitle) {
+  const amountText = Number.isInteger(amount) ? String(amount) : String(amount).replace(/\.?0+$/, '');
+  const title = (itemTitle || 'a quest').trim();
+  return `${contributorUsername} gifted ${recipientUsername} $${amountText} worth of ${title}`;
+}
+
+function extractItemTitleFromLotMessage(message) {
+  // "… gave $N in TITLE to NAME via the Library of Things"
+  const match = String(message || '').match(/\bgave \$[\d.]+ in (.+) to .+ via the Library of Things\b/i);
+  return match?.[1]?.trim() || '';
+}
+
+async function encryptLotContributionGift(session, crewId, gift, { quest = false } = {}) {
+  const id = giftDtoId(gift);
+  if (!id) {
+    log('warn', `LoT/quest gift DTO missing giftId (server may still be returning 0 pre-SaveChanges)`);
+    return false;
+  }
+  const giverName = gift.contributorUsername;
+  const recipientName = gift.recipientUsername || 'Crewmate';
+  const message = quest
+    ? questMessage(giverName, recipientName, gift.amount, gift.itemTitle)
+    : lotMessage(giverName, gift.amount, gift.itemTitle, recipientName);
+  await encryptGiftLogEntry(session, crewId, {
+    id,
+    message,
+    giverName,
+    recipientName,
+    middlemanName: null,
+    platform: 'Library of Things'
+  });
+  return true;
+}
+
+/**
+ * Peer Venmo gifts are first encrypted by the recipient (verify flow). Prefer recipient as author.
+ */
+async function resyncPeerGiftLogEncryption(crewMembers, crewId) {
+  const viewer = crewMembers[0];
+  const giftLog = await api('/api/gifts/log?limit=100', {
+    token: viewer.token,
+    okStatuses: [200, 400]
+  });
+  const items = (giftLog?.items || []).filter((entry) => {
+    const platform = entry?.platform || '';
+    const msg = entry?.message || '';
+    if (/library of things/i.test(platform) || /via the Library of Things/i.test(msg)) return false;
+    if (/gifted .+ \$[\d.]+ worth of /i.test(msg)) return false;
+    return Boolean(msg) && /via Venmo/i.test(msg);
+  });
+  let updated = 0;
+  for (const entry of items) {
+    // recordAndVerifyGift encrypts as recipient; fall back to giver if needed.
+    const authors = [
+      crewMembers.find((m) => m.userId === entry.recipientId),
+      crewMembers.find((m) => m.userId === entry.giverId)
+    ].filter(Boolean);
+    let ok = false;
+    for (const author of authors) {
+      try {
+        await encryptGiftLogEntry(author, crewId, {
+          ...entry,
+          giverName: entry.giverName || authors.find((a) => a.userId === entry.giverId)?.account?.username,
+          recipientName: entry.recipientName || authors.find((a) => a.userId === entry.recipientId)?.account?.username,
+          platform: entry.platform || 'Venmo'
+        });
+        ok = true;
+        updated += 1;
+        break;
+      } catch (err) {
+        // try next author
+        if (author === authors[authors.length - 1]) {
+          log('warn', `gift-log re-encrypt #${entry.id}: ${err.message}`);
+        }
+      }
+    }
+    if (!ok && !authors.length) {
+      log('warn', `gift-log re-encrypt #${entry.id}: no crew author`);
+    }
+  }
+  log('gift-log', `re-encrypted ${updated}/${items.length} peer-payment entries`);
+}
+
+/**
+ * Encrypt LoT / quest rows with the real client display strings.
+ * Works around older APIs that returned giftId: 0 before identity SaveChanges.
+ */
+async function resyncLibraryGiftLogEncryption(crewMembers, crewId, questTitles = []) {
+  const viewer = crewMembers[0];
+  const giftLog = await api('/api/gifts/log?limit=100', {
+    token: viewer.token,
+    okStatuses: [200, 400]
+  });
+  const questTitleSet = new Set(questTitles.map((t) => t.trim().toLowerCase()).filter(Boolean));
+  const items = (giftLog?.items || []).filter((entry) => {
+    const platform = entry?.platform || '';
+    const msg = entry?.message || '';
+    return /library of things/i.test(platform) || /via the Library of Things/i.test(msg);
+  });
+
+  let updated = 0;
+  for (const entry of items) {
+    const giver = crewMembers.find((m) => m.userId === entry.giverId);
+    const recipient = crewMembers.find((m) => m.userId === entry.recipientId);
+    const author = giver || recipient;
+    if (!author) continue;
+
+    const giverName = entry.giverName || giver?.account?.username || 'Crewmate';
+    const recipientName = entry.recipientName || recipient?.account?.username || 'Crewmate';
+    const itemTitle = extractItemTitleFromLotMessage(entry.message) || 'an offering';
+    const isQuest = questTitleSet.has(itemTitle.toLowerCase())
+      || /gifted .+ \$[\d.]+ worth of /i.test(entry.message || '');
+
+    const message = isQuest
+      ? questMessage(giverName, recipientName, entry.amount, itemTitle)
+      : lotMessage(giverName, entry.amount, itemTitle, recipientName);
+
+    try {
+      await encryptGiftLogEntry(author, crewId, {
+        id: entry.id,
+        message,
+        giverName,
+        recipientName,
+        middlemanName: null,
+        platform: 'Library of Things'
+      });
+      updated += 1;
+      log(isQuest ? 'quest-gift' : 'lot-gift', message);
+    } catch (err) {
+      log('warn', `library gift-log encrypt #${entry.id}: ${err.message}`);
+    }
+  }
+  log('gift-log', `encrypted ${updated}/${items.length} Library of Things entries`);
+}
+
+async function recordAndVerifyGift(giver, recipient, amount) {
   const membership = await getMembership(giver);
   const platforms = await api('/api/crews/payment-platforms', { token: giver.token });
   const venmo = (platforms || []).find((p) => /venmo/i.test(p.name));
@@ -457,34 +632,17 @@ async function recordAndVerifyGift(giver, recipient, amount, message) {
   if (!recorded?.success || !recorded.entry?.id) fail('Record gift failed', recorded);
 
   const giftId = recorded.entry.id;
-  const material = await ensureCrewKey(giver, membership.crewId);
-  const encrypted = await cryptoLib.encryptJson(material.aes, {
-    message,
-    giverName: giver.account.displayName,
-    recipientName: recipient.account.displayName,
-    middlemanName: null,
-    platform: 'Venmo'
-  });
-  await api('/api/crypto/content', {
-    method: 'PUT',
-    token: giver.token,
-    body: {
-      contentType: 'GiftLogEntry',
-      resourceId: String(giftId),
-      crewId: membership.crewId,
-      keyVersion: material.keyVersion,
-      nonce: encrypted.nonce,
-      ciphertext: encrypted.ciphertext
-    }
-  });
-
   const verified = await api(`/api/gifts/${giftId}/verify`, {
     method: 'POST',
     token: recipient.token,
     body: { action: 'confirmReceived' }
   });
   if (!verified?.success) fail(`Verify gift ${giftId} failed`, verified);
-  log('gift', `${giver.account.username} → ${recipient.account.username} $${amount}`);
+
+  // App encrypts the verified DTO (FormatMessage), not a freeform note.
+  const entry = verified.entry || recorded.entry;
+  await encryptGiftLogEntry(recipient, membership.crewId, entry);
+  log('gift', entry.message || `${giver.account.username} → ${recipient.account.username} $${amount}`);
   return giftId;
 }
 
@@ -493,7 +651,7 @@ async function createOffering(session, crewId, offering) {
   const encrypted = await cryptoLib.encryptJson(material.aes, {
     title: offering.title,
     description: offering.description,
-    authorDisplayName: session.account.displayName,
+    authorDisplayName: session.account.username,
     attachments: [],
     thumbnailResourceId: null
   });
@@ -508,12 +666,12 @@ async function createOffering(session, crewId, offering) {
       unitLabel: offering.unitLabel,
       quantity: offering.quantity,
       quantityNotApplicable: offering.quantityNotApplicable ?? false,
-      stockTier1: null,
-      stockTier2: null,
-      stockTier3: null,
-      stockTier4: null,
-      stockTier5: null,
-      stockTier6: null,
+      stockTier1: offering.stockTier1 ?? null,
+      stockTier2: offering.stockTier2 ?? null,
+      stockTier3: offering.stockTier3 ?? null,
+      stockTier4: offering.stockTier4 ?? null,
+      stockTier5: offering.stockTier5 ?? null,
+      stockTier6: offering.stockTier6 ?? null,
       minimumViewerTier: 1,
       countryCode: null,
       allowedZipCodes: [],
@@ -528,6 +686,7 @@ async function createOffering(session, crewId, offering) {
   });
   if (!result?.success) fail(`Create offering ${offering.title} failed`, result);
   log('library', offering.title);
+  return result;
 }
 
 async function createQuest(session, crewId, quest) {
@@ -560,6 +719,177 @@ async function createQuest(session, crewId, quest) {
   });
   if (!result?.success) fail(`Create quest ${quest.title} failed`, result);
   log('quest', quest.title);
+  return result;
+}
+
+async function firstUnitId(session, offeringId) {
+  if (!offeringId) return null;
+  const units = await api(`/api/library/offerings/${offeringId}/units`, {
+    token: session.token,
+    okStatuses: [200, 400]
+  });
+  const items = units?.items || units?.units || [];
+  if (items[0]?.unitId || items[0]?.id) return items[0].unitId || items[0].id;
+  if (Array.isArray(units) && units[0]) return units[0].unitId || units[0].id;
+  return null;
+}
+
+async function encryptLotGiftDto(session, crewId, gift, recipientName) {
+  const id = giftDtoId(gift);
+  if (!id) {
+    log('warn', `LoT gift DTO missing giftId — will backfill from gift log`);
+    return false;
+  }
+  const resolvedRecipient = recipientName || gift.recipientUsername || 'Crewmate';
+  const message = lotMessage(gift.contributorUsername, gift.amount, gift.itemTitle, resolvedRecipient);
+  await encryptGiftLogEntry(session, crewId, {
+    id,
+    message,
+    giverName: gift.contributorUsername,
+    recipientName: resolvedRecipient,
+    middlemanName: null,
+    platform: 'Library of Things'
+  });
+  log('lot-gift', message);
+  return true;
+}
+
+async function encryptCompletedLotGifts(session, crewId, completed) {
+  // Mirrors library-request-detail / unit-detail after complete/acquire.
+  // Contribution / reception / completer gifts are peer-to-peer (recipientUsername).
+  if (completed?.contributionGift) {
+    await encryptLotGiftDto(
+      session,
+      crewId,
+      completed.contributionGift,
+      completed.contributionGift.recipientUsername
+    );
+  }
+  if (completed?.completerGift) {
+    await encryptLotGiftDto(
+      session,
+      crewId,
+      completed.completerGift,
+      completed.completerGift.recipientUsername || 'Crewmate'
+    );
+  }
+  if (completed?.receptionGift) {
+    await encryptLotGiftDto(
+      session,
+      crewId,
+      completed.receptionGift,
+      completed.receptionGift.recipientUsername || 'Crewmate'
+    );
+  }
+}
+
+async function requestAndCompleteLot({
+  requester,
+  completer,
+  crewId,
+  unitId,
+  purpose,
+  quantity = 1
+}) {
+  const material = await ensureCrewKey(requester, crewId);
+  const purposeEnc = await cryptoLib.encryptJson(material.aes, { purpose });
+  const now = new Date();
+  const start = new Date(now.getTime() - 3600_000).toISOString();
+  const end = new Date(now.getTime() + 7 * 86400_000).toISOString();
+  const created = await api(`/api/library/units/${unitId}/requests`, {
+    method: 'POST',
+    token: requester.token,
+    body: {
+      quantity,
+      purposePreview: purpose.slice(0, 120),
+      neededByStart: start,
+      neededByEnd: end,
+      timeZone: 'America/New_York',
+      nonce: purposeEnc.nonce,
+      ciphertext: purposeEnc.ciphertext,
+      keyVersion: material.keyVersion
+    }
+  });
+  if (!created?.success || !created.requestId) fail('Create LoT request failed', created);
+
+  const completed = await api(`/api/library/requests/${created.requestId}/complete`, {
+    method: 'POST',
+    token: completer.token,
+    okStatuses: [200, 400]
+  });
+  if (!completed?.success) fail('Complete LoT request failed', completed);
+
+  await encryptCompletedLotGifts(completer, crewId, completed);
+  return completed;
+}
+
+/** On-demand consumables / services use acquisition instead of a borrow request. */
+async function recordLotAcquisition({
+  acquirer,
+  crewId,
+  unitId,
+  purpose,
+  quantity = 1
+}) {
+  const material = await ensureCrewKey(acquirer, crewId);
+  const purposeEnc = await cryptoLib.encryptJson(material.aes, { purpose });
+  const completed = await api(`/api/library/units/${unitId}/acquisitions`, {
+    method: 'POST',
+    token: acquirer.token,
+    body: {
+      quantity,
+      purposePreview: purpose.slice(0, 120),
+      nonce: purposeEnc.nonce,
+      ciphertext: purposeEnc.ciphertext,
+      keyVersion: material.keyVersion
+    }
+  });
+  if (!completed?.success) fail('LoT acquisition failed', completed);
+  await encryptCompletedLotGifts(acquirer, crewId, completed);
+  return completed;
+}
+
+async function completeQuest({ creator, completer, crewId, taskId, title }) {
+  const marked = await api(`/api/library/tasks/${taskId}/complete-anytime`, {
+    method: 'POST',
+    token: completer.token,
+    okStatuses: [200, 400]
+  });
+  if (!marked?.success) fail(`Quest complete-anytime failed for ${title}`, marked);
+
+  const detail = await api(`/api/library/tasks/${taskId}`, { token: creator.token });
+  const task = detail?.task || detail;
+  let instanceIds = [...(task?.pendingConfirmationInstanceIds || [])];
+  if (!instanceIds.length) {
+    const instances = task?.instances || [];
+    instanceIds = instances
+      .filter((i) => /awaiting/i.test(String(i.status ?? '')) || i.status === 2)
+      .map((i) => i.instanceId ?? i.id)
+      .filter((id) => Number.isFinite(id));
+  }
+  if (!instanceIds.length) fail(`No quest instances to confirm for ${title}`, detail);
+
+  const confirmed = await api(`/api/library/tasks/${taskId}/confirm`, {
+    method: 'POST',
+    token: creator.token,
+    body: { instanceIds, titlePreview: title }
+  });
+  if (!confirmed?.success) fail(`Quest confirm failed for ${title}`, confirmed);
+
+  for (const gift of confirmed.contributionGifts || []) {
+    const ok = await encryptLotContributionGift(creator, crewId, {
+      ...gift,
+      itemTitle: title || gift.itemTitle
+    }, { quest: true });
+    if (ok) {
+      log('quest-gift', questMessage(
+        gift.contributorUsername,
+        gift.recipientUsername,
+        gift.amount,
+        title || gift.itemTitle
+      ));
+    }
+  }
 }
 
 async function createOpenProposal(session, crewId, title, description) {
@@ -812,23 +1142,6 @@ async function main() {
     }
   }
 
-  // 4) Showcase content — Cedar
-  const rooms = await listRooms(maya);
-  const cedarText = rooms.find((r) => isTextRoom(r) && /general/i.test(r.name || ''))
-    || rooms.find((r) => isTextRoom(r));
-  if (cedarText) {
-    await sendChat(maya, cedarText.id, cedar.crewId,
-      'Welcome to Cedar Circle — we coordinate weekly mutual aid, Library of Things shares, and democratic crew votes here.');
-    await sendChat(sessions.get('jordan'), cedarText.id, cedar.crewId,
-      'I can drop off the spare air mattress this weekend. Logging it in Library of Things now.');
-    await sendChat(sessions.get('sam'), cedarText.id, cedar.crewId,
-      'Thanks everyone — groceries last week really helped. Confirming gifts in the gift log.');
-    await sendChat(sessions.get('lee'), cedarText.id, cedar.crewId,
-      'Still in a rough patch with medical costs. Grateful for the survival-threshold priority this season.');
-  } else {
-    log('warn', 'No Cedar text room found for chat seed');
-  }
-
   async function startSeason(crewMembers, label) {
     const captainSession = crewMembers.find((m) => m.account.role === 'captain');
     const estimates = {
@@ -879,20 +1192,20 @@ async function main() {
   await startSeason(cedar.members, 'Cedar Circle');
   await startSeason(river.members, 'River House');
 
-  // Gifts (verified — requires active season)
-  await recordAndVerifyGift(sessions.get('jordan'), sessions.get('sam'), 40, 'Groceries run — milk, rice, fruit');
-  await recordAndVerifyGift(sessions.get('priya'), sessions.get('lee'), 75, 'Help with pharmacy co-pay');
-  await recordAndVerifyGift(sessions.get('maya'), sessions.get('lee'), 50, 'Transit cards + shared dinner');
-  await recordAndVerifyGift(sessions.get('devon'), sessions.get('morgan'), 25, 'River House: ride to clinic');
+  // 4) Showcase content — financial gifts use post-verify FormatMessage ciphertext
+  await recordAndVerifyGift(sessions.get('jordan'), sessions.get('sam'), 40);
+  await recordAndVerifyGift(sessions.get('priya'), sessions.get('lee'), 75);
+  await recordAndVerifyGift(sessions.get('maya'), sessions.get('lee'), 50);
+  await recordAndVerifyGift(sessions.get('devon'), sessions.get('morgan'), 25);
 
-  // Library offerings
+  // Library offerings + real request/complete / quest confirm → LoT gift-log format
   const categories = await api('/api/library/categories', { token: maya.token });
   const catList = categories.items || [];
   const toolsCat = catList.find((c) => /tool|hardware|home|household/i.test(c.name)) || catList[0];
   const foodCat = catList.find((c) => /produce|food|bakery/i.test(c.name)) || catList[1] || catList[0];
   const serviceCat = catList.find((c) => /service|care|skill|labor/i.test(c.name)) || catList[2] || catList[0];
 
-  await createOffering(maya, cedar.crewId, {
+  const mattress = await createOffering(maya, cedar.crewId, {
     title: 'Folding air mattress + pump',
     description: 'Queen inflatable mattress with electric pump. Borrow for guests or emergencies. Return clean and dry.',
     categoryIds: toolsCat ? [toolsCat.id] : [1],
@@ -903,13 +1216,20 @@ async function main() {
     fulfillmentMode: 'OnRequest',
     visibility: 'CrewOnly'
   });
-  await createOffering(sessions.get('jordan'), cedar.crewId, {
+  const produce = await createOffering(sessions.get('jordan'), cedar.crewId, {
     title: 'Weekend produce box',
     description: 'Extra CSA share — leafy greens, apples, and eggs. First come, pickup Saturday morning.',
     categoryIds: foodCat ? [foodCat.id] : [1],
     valuePerUnit: 25,
     unitLabel: 'box',
     quantity: 2,
+    // Consumables are per-tier; seed stock on every tier so any priority can acquire.
+    stockTier1: 2,
+    stockTier2: 2,
+    stockTier3: 2,
+    stockTier4: 2,
+    stockTier5: 2,
+    stockTier6: 2,
     kind: 'Consumable',
     fulfillmentMode: 'OnDemand',
     visibility: 'CrewOnly'
@@ -939,16 +1259,140 @@ async function main() {
     visibility: 'FleetWide'
   });
 
-  await createQuest(maya, cedar.crewId, {
+  const mattressUnitId = (mattress.unitIds && mattress.unitIds[0])
+    || (mattress.UnitIds && mattress.UnitIds[0])
+    || await firstUnitId(maya, mattress.offeringId);
+  const produceUnitId = (produce.unitIds && produce.unitIds[0])
+    || (produce.UnitIds && produce.UnitIds[0])
+    || await firstUnitId(sessions.get('jordan'), produce.offeringId);
+  log('library-ids', `mattress offering=${mattress.offeringId} unit=${mattressUnitId}; produce offering=${produce.offeringId} unit=${produceUnitId}`);
+
+  if (mattressUnitId) {
+    log('lot', `durable request/complete unit ${mattressUnitId}`);
+    try {
+      await requestAndCompleteLot({
+        requester: sessions.get('lee'),
+        completer: maya,
+        crewId: cedar.crewId,
+        unitId: mattressUnitId,
+        purpose: 'Cousin visiting this weekend — needs a place to sleep two nights.'
+      });
+    } catch (err) {
+      log('warn', `mattress LoT: ${err.message || err}`);
+    }
+  } else {
+    log('warn', 'No mattress unit id — skipped LoT durable completion');
+  }
+
+  if (produceUnitId) {
+    log('lot', `consumable acquisition unit ${produceUnitId}`);
+    try {
+      await recordLotAcquisition({
+        acquirer: sessions.get('sam'),
+        crewId: cedar.crewId,
+        unitId: produceUnitId,
+        purpose: 'Kids lunches this week — greens, fruit, eggs if still available.'
+      });
+    } catch (err) {
+      log('warn', `produce LoT: ${err.message || err}`);
+    }
+  } else {
+    log('warn', 'No produce unit id — skipped LoT consumable acquisition');
+  }
+
+  const pantryQuest = await createQuest(maya, cedar.crewId, {
     title: 'Stock the mutual-aid pantry shelf',
     details: 'Add rice, beans, and shelf-stable milk to the building pantry. Completion counts as a gift toward priority.',
     value: 30
   });
-  await createQuest(avery, river.crewId, {
+  const welcomeQuest = await createQuest(avery, river.crewId, {
     title: 'Build the River House welcome packet',
     details: 'Write a one-page guide for new crewmates: Venmo handles, LoT etiquette, and voting norms.',
     value: 20
   });
+
+  if (pantryQuest?.taskId) {
+    await completeQuest({
+      creator: maya,
+      completer: sessions.get('priya'),
+      crewId: cedar.crewId,
+      taskId: pantryQuest.taskId,
+      title: 'Stock the mutual-aid pantry shelf'
+    });
+  }
+  if (welcomeQuest?.taskId) {
+    await completeQuest({
+      creator: avery,
+      completer: sessions.get('casey'),
+      crewId: river.crewId,
+      taskId: welcomeQuest.taskId,
+      title: 'Build the River House welcome packet'
+    });
+  }
+
+  const questTitles = [
+    'Stock the mutual-aid pantry shelf',
+    'Build the River House welcome packet'
+  ];
+
+  // Fix Venmo + LoT/quest ciphertext (including giftId:0 responses from older APIs).
+  await resyncPeerGiftLogEncryption(cedar.members, cedar.crewId);
+  await resyncPeerGiftLogEncryption(river.members, river.crewId);
+  await resyncLibraryGiftLogEncryption(cedar.members, cedar.crewId, questTitles);
+  await resyncLibraryGiftLogEncryption(river.members, river.crewId, questTitles);
+
+  // Chat that references the real flows — only seed once so re-runs aren't repetitive.
+  const rooms = await listRooms(maya);
+  const cedarText = rooms.find((r) => isTextRoom(r) && /general/i.test(r.name || ''))
+    || rooms.find((r) => isTextRoom(r));
+  if (cedarText) {
+    const existing = await api(`/api/chats/rooms/${cedarText.id}/messages?limit=5`, {
+      token: maya.token,
+      okStatuses: [200, 400]
+    });
+    const existingCount = (existing?.items || []).length;
+    if (existingCount > 0) {
+      log('chat', `Cedar General already has messages (${existingCount}+) — skipping re-seed`);
+    } else {
+      const thread = [
+        [maya, 'Season is open. Lee and Sam are both marked in need — keep gift log confirmations current so priority stays fair.'],
+        [sessions.get('jordan'), 'Venmo’d Sam $40 for groceries after my shift. Please confirm when it lands.'],
+        [sessions.get('sam'), 'Confirmed. Also grabbed one of your produce boxes in LoT for the kids’ lunches — thanks.'],
+        [sessions.get('priya'), 'Lee, I can cover the pharmacy co-pay ($75) today if you still need it.'],
+        [sessions.get('lee'), 'Yes please. Confirming when it hits. Maya — requesting the air mattress for my cousin this weekend.'],
+        [maya, 'Mattress handoff is done in LoT. Priya, pantry quest is yours whenever you can stock the shelf.'],
+        [sessions.get('priya'), 'Pantry’s stocked — marked the quest complete for your confirmation.'],
+        [maya, 'Confirmed. Gift log should show the Venmo gifts plus the LoT / quest contributions now.']
+      ];
+      for (const [who, text] of thread) {
+        await sendChat(who, cedarText.id, cedar.crewId, text);
+      }
+      log('chat', 'Cedar General thread seeded');
+    }
+  } else {
+    log('warn', 'No Cedar text room found for chat seed');
+  }
+
+  const riverRooms = await listRooms(avery);
+  const riverText = riverRooms.find((r) => isTextRoom(r) && /general/i.test(r.name || ''))
+    || riverRooms.find((r) => isTextRoom(r));
+  if (riverText) {
+    const existing = await api(`/api/chats/rooms/${riverText.id}/messages?limit=5`, {
+      token: avery.token,
+      okStatuses: [200, 400]
+    });
+    if ((existing?.items || []).length > 0) {
+      log('chat', 'River General already has messages — skipping re-seed');
+    } else {
+      await sendChat(avery, riverText.id, river.crewId,
+        'Devon logged $25 to Morgan for the clinic ride — Morgan, confirm in the gift log when you can.');
+      await sendChat(sessions.get('morgan'), riverText.id, river.crewId,
+        'Confirmed. Casey, thanks for drafting the welcome packet quest — Avery still needs to confirm completion.');
+      await sendChat(sessions.get('casey'), riverText.id, river.crewId,
+        'Packet’s in the shared folder. Cargo bike is listed fleet-wide if Cedar needs a grocery run.');
+      log('chat', 'River General thread seeded');
+    }
+  }
 
   // Open proposal (leaves something pending for reviewers to vote on)
   await createOpenProposal(
