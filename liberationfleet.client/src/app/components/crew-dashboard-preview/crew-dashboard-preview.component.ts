@@ -1,11 +1,28 @@
-import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnChanges,
+  OnDestroy,
+  Output,
+  SimpleChanges,
+  ViewChild,
+  inject
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ChatDashboardPreview,
+  ChatDashboardPreviewItem,
   CrewDashboardPreview,
+  CrewDashboardPreviewKind,
   CrewDashboardPreviewOpenTarget,
   ForumDashboardPreview,
+  ForumDashboardPreviewItem,
   GiftDashboardPreview,
+  GiftDashboardPreviewItem,
   LibraryDashboardPreview,
   LibraryDashboardPreviewItem,
   LibraryQuestDashboardPreview,
@@ -14,6 +31,8 @@ import {
 import { LibraryItemCardComponent } from '../library-item-card/library-item-card.component';
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 import { formatDashboardTimestamp } from '../../utils/dashboard-preview.util';
+import { preferSwipeCarousel } from '../../utils/haptic.util';
+import { PreviewCarouselController } from '../../utils/preview-carousel.controller';
 import { questValueCardNote } from '../../pages/library/library-tasks/library-task-copy';
 
 @Component({
@@ -23,13 +42,33 @@ import { questValueCardNote } from '../../pages/library/library-tasks/library-ta
   templateUrl: './crew-dashboard-preview.component.html',
   styleUrl: './crew-dashboard-preview.component.css'
 })
-export class CrewDashboardPreviewComponent implements OnChanges {
+export class CrewDashboardPreviewComponent implements OnChanges, AfterViewInit, OnDestroy {
   @Input() preview: CrewDashboardPreview | null = null;
   @Input() loading = false;
   @Input() crewId: number | null = null;
+  @Input() fleetId: number | null = null;
   @Output() open = new EventEmitter<CrewDashboardPreviewOpenTarget>();
-  private touchStartX: number | null = null;
-  activeLibraryIndex = 0;
+  @Output() needMore = new EventEmitter<CrewDashboardPreviewKind>();
+  @ViewChild('viewport') viewport?: ElementRef<HTMLElement>;
+
+  private readonly changeDetector = inject(ChangeDetectorRef);
+  readonly carousel: PreviewCarouselController;
+  private resizeObserver: ResizeObserver | null = null;
+  private lastPreviewRef: CrewDashboardPreview | null = null;
+  viewportWidth = 1;
+  useSwipe = preferSwipeCarousel();
+
+  constructor() {
+    this.carousel = new PreviewCarouselController({
+      preferSwipe: () => this.useSwipe,
+      onIndexChange: () => this.changeDetector.markForCheck(),
+      onNeedMore: () => {
+        if (this.preview?.kind) {
+          this.needMore.emit(this.preview.kind);
+        }
+      }
+    });
+  }
 
   get forumPreview(): ForumDashboardPreview | null {
     return this.preview?.kind === 'forum' ? this.preview : null;
@@ -43,42 +82,71 @@ export class CrewDashboardPreviewComponent implements OnChanges {
     return this.preview?.kind === 'gift' ? this.preview : null;
   }
 
-  get libraryUnitPreview(): LibraryUnitDashboardPreview | null {
-    const item = this.activeLibraryItem;
-    return item?.libraryKind === 'unit'
-      ? item
-      : null;
-  }
-
-  get libraryQuestPreview(): LibraryQuestDashboardPreview | null {
-    const item = this.activeLibraryItem;
-    return item?.libraryKind === 'quest'
-      ? item
-      : null;
-  }
-
   get libraryPreview(): LibraryDashboardPreview | null {
     return this.preview?.kind === 'library' ? this.preview : null;
   }
 
-  get activeLibraryItem(): LibraryDashboardPreviewItem | null {
-    const items = this.libraryPreview?.items ?? [];
-    if (!items.length) {
-      return null;
-    }
-    const index = Math.min(this.activeLibraryIndex, items.length - 1);
-    return items[index] ?? null;
+  get items(): Array<
+    ForumDashboardPreviewItem
+    | ChatDashboardPreviewItem
+    | GiftDashboardPreviewItem
+    | LibraryDashboardPreviewItem
+  > {
+    return this.preview?.items ?? [];
   }
 
-  get hasLibraryCarouselControls(): boolean {
-    return (this.libraryPreview?.items.length ?? 0) > 1;
+  get hasCarouselControls(): boolean {
+    return this.items.length > 1;
+  }
+
+  get showDesktopArrows(): boolean {
+    return this.hasCarouselControls && !this.useSwipe;
+  }
+
+  get trackTransform(): string {
+    return this.carousel.trackTransform(this.viewportWidth);
+  }
+
+  get activeIndex(): number {
+    return this.carousel.activeIndex;
+  }
+
+  ngAfterViewInit(): void {
+    this.measureViewport();
+    if (typeof ResizeObserver !== 'undefined' && this.viewport?.nativeElement) {
+      this.resizeObserver = new ResizeObserver(() => this.measureViewport());
+      this.resizeObserver.observe(this.viewport.nativeElement);
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.resizeObserver?.disconnect();
+    this.resizeObserver = null;
   }
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['preview']) {
-      this.activeLibraryIndex = 0;
-      this.touchStartX = null;
+    if (!changes['preview']) {
+      return;
     }
+
+    const previous = this.lastPreviewRef;
+    const next = this.preview;
+    this.lastPreviewRef = next;
+    const previousCount = previous?.items?.length ?? 0;
+    const nextCount = next?.items?.length ?? 0;
+    const sameKind = previous?.kind === next?.kind;
+    const appended = sameKind && nextCount > previousCount && previousCount > 0;
+
+    this.useSwipe = preferSwipeCarousel();
+    this.carousel.setItemCount(nextCount);
+
+    if (!appended) {
+      this.carousel.reset(0);
+      this.carousel.setItemCount(nextCount);
+    }
+
+    // Defer measure so it does not trip ExpressionChangedAfterItHasBeenChecked in tests/dev.
+    setTimeout(() => this.measureViewport(), 0);
   }
 
   formatTime(date: Date | string | null | undefined): string {
@@ -89,16 +157,32 @@ export class CrewDashboardPreviewComponent implements OnChanges {
     return questValueCardNote(value);
   }
 
-  onOpen(): void {
-    if (this.preview?.kind === 'library') {
-      const item = this.activeLibraryItem;
-      if (item) {
-        this.open.emit(item);
-      }
-      return;
-    }
-    if (this.preview) {
-      this.open.emit(this.preview);
+  asForum(item: unknown): ForumDashboardPreviewItem {
+    return item as ForumDashboardPreviewItem;
+  }
+
+  asChat(item: unknown): ChatDashboardPreviewItem {
+    return item as ChatDashboardPreviewItem;
+  }
+
+  asGift(item: unknown): GiftDashboardPreviewItem {
+    return item as GiftDashboardPreviewItem;
+  }
+
+  asLibraryUnit(item: unknown): LibraryUnitDashboardPreview | null {
+    const lib = item as LibraryDashboardPreviewItem;
+    return lib?.libraryKind === 'unit' ? lib : null;
+  }
+
+  asLibraryQuest(item: unknown): LibraryQuestDashboardPreview | null {
+    const lib = item as LibraryDashboardPreviewItem;
+    return lib?.libraryKind === 'quest' ? lib : null;
+  }
+
+  onOpen(item?: CrewDashboardPreviewOpenTarget): void {
+    const target = item ?? this.items[this.activeIndex];
+    if (target) {
+      this.open.emit(target);
     }
   }
 
@@ -109,43 +193,34 @@ export class CrewDashboardPreviewComponent implements OnChanges {
     }
   }
 
-  showPreviousLibraryItem(event: Event): void {
+  showPrevious(event: Event): void {
     event.stopPropagation();
-    const items = this.libraryPreview?.items ?? [];
-    if (items.length < 2) {
-      return;
-    }
-    this.activeLibraryIndex = (this.activeLibraryIndex - 1 + items.length) % items.length;
+    this.carousel.showPrevious();
   }
 
-  showNextLibraryItem(event: Event): void {
+  showNext(event: Event): void {
     event.stopPropagation();
-    const items = this.libraryPreview?.items ?? [];
-    if (items.length < 2) {
-      return;
-    }
-    this.activeLibraryIndex = (this.activeLibraryIndex + 1) % items.length;
+    this.carousel.showNext();
   }
 
   onTouchStart(event: TouchEvent): void {
-    this.touchStartX = event.touches[0]?.clientX ?? null;
+    this.measureViewport();
+    this.carousel.onTouchStart(event, this.viewportWidth);
   }
 
-  onTouchEnd(event: TouchEvent): void {
-    const startX = this.touchStartX;
-    const endX = event.changedTouches[0]?.clientX ?? null;
-    this.touchStartX = null;
-    if (startX === null || endX === null || !this.hasLibraryCarouselControls) {
-      return;
-    }
-    const deltaX = endX - startX;
-    if (Math.abs(deltaX) < 36) {
-      return;
-    }
-    if (deltaX < 0) {
-      this.showNextLibraryItem(event);
-    } else {
-      this.showPreviousLibraryItem(event);
+  onTouchMove(event: TouchEvent): void {
+    this.carousel.onTouchMove(event);
+  }
+
+  onTouchEnd(): void {
+    this.carousel.onTouchEnd();
+  }
+
+  private measureViewport(): void {
+    const width = this.viewport?.nativeElement?.clientWidth ?? 0;
+    if (width > 0) {
+      this.viewportWidth = width;
+      this.changeDetector.markForCheck();
     }
   }
 }

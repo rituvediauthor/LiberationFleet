@@ -140,6 +140,8 @@ class StubCrewFindPanelComponent {
 class StubCollapsibleSectionComponent {
   @Input() title = '';
   @Input() variant: string | null = null;
+  @Input() expanded = false;
+  @Output() expandedChange = new EventEmitter<boolean>();
 }
 
 @Component({
@@ -188,6 +190,7 @@ describe('CrewHomeComponent', () => {
     loadPreviews: jasmine.Spy;
     loadPreview: jasmine.Spy;
     peekCachedPreview: jasmine.Spy;
+    appendPreviewItem: jasmine.Spy;
   };
 
   beforeEach(async () => {
@@ -228,7 +231,8 @@ describe('CrewHomeComponent', () => {
         library: null
       } satisfies CrewDashboardPreviews),
       loadPreview: jasmine.createSpy('loadPreview').and.resolveTo(null),
-      peekCachedPreview: jasmine.createSpy('peekCachedPreview').and.returnValue(undefined)
+      peekCachedPreview: jasmine.createSpy('peekCachedPreview').and.returnValue(undefined),
+      appendPreviewItem: jasmine.createSpy('appendPreviewItem').and.resolveTo(null)
     };
 
     await TestBed.configureTestingModule({
@@ -513,25 +517,28 @@ describe('CrewHomeComponent', () => {
 
     resolvers.get('forum')?.({
       kind: 'forum',
-      id: 56,
-      authorUsername: 'Ada',
-      lastActivityAt: new Date(),
-      title: 'Fresh post',
-      body: 'Hello'
+      hasMore: false,
+      items: [{
+        id: 56,
+        authorUsername: 'Ada',
+        lastActivityAt: new Date(),
+        title: 'Fresh post',
+        body: 'Hello'
+      }]
     });
     resolvers.get('chat')?.(null);
     resolvers.get('gift')?.(null);
     resolvers.get('library')?.(null);
     tick();
 
-    expect(component.previews.forum?.id).toBe(56);
+    expect(component.previews.forum?.items[0]?.id).toBe(56);
     expect(component.previewLoading.chat).toBeFalse();
 
     fixture.destroy();
     discardPeriodicTasks();
   }));
 
-  it('polls badge freshness and only refreshes the preview tiles whose counts changed', fakeAsync(() => {
+  it('loads previews on unlock and does not poll-refresh tiles from badge count changes', fakeAsync(() => {
     cryptoUnlocked = true;
     unlocked$.next(true);
     crewService.getMembership.and.returnValue(of({
@@ -552,9 +559,6 @@ describe('CrewHomeComponent', () => {
     expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'library', { force: true });
     dashboardPreviewService.loadPreview.calls.reset();
 
-    tick(5000);
-    expect(notificationService.refreshBadges).toHaveBeenCalledWith(true);
-
     areaCounts$.next({
       ...emptyAreaCounts(),
       crewChats: 2,
@@ -562,10 +566,7 @@ describe('CrewHomeComponent', () => {
     });
     tick();
 
-    expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'chat', { force: true });
-    expect(dashboardPreviewService.loadPreview).toHaveBeenCalledWith(1, 'library', { force: true });
-    expect(dashboardPreviewService.loadPreview).not.toHaveBeenCalledWith(1, 'forum', { force: true });
-    expect(dashboardPreviewService.loadPreview).not.toHaveBeenCalledWith(1, 'gift', { force: true });
+    expect(dashboardPreviewService.loadPreview).not.toHaveBeenCalled();
 
     fixture.destroy();
     discardPeriodicTasks();
@@ -573,7 +574,6 @@ describe('CrewHomeComponent', () => {
 
   it('should open a forum preview deep link', () => {
     component.openPreview({
-      kind: 'forum',
       id: 55,
       authorUsername: 'Ada',
       lastActivityAt: new Date(),
@@ -585,7 +585,6 @@ describe('CrewHomeComponent', () => {
 
   it('should open a chat message preview deep link', () => {
     component.openPreview({
-      kind: 'chat',
       roomId: 8,
       messageId: 99,
       authorUsername: 'Bo',

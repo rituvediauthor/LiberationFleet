@@ -1,4 +1,12 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  inject,
+  OnDestroy,
+  OnInit
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subscription, of } from 'rxjs';
@@ -20,11 +28,21 @@ import {
   emptyAreaCounts
 } from '../../../utils/notification-area.util';
 import { ForumListPrefetchService } from '../../../services/forum-list-prefetch.service';
+import { FleetDashboardPreviewService } from '../../../services/fleet-dashboard-preview.service';
 import { CollapsibleSectionComponent } from '../../../components/collapsible-section/collapsible-section.component';
+import { CrewDashboardPreviewComponent } from '../../../components/crew-dashboard-preview/crew-dashboard-preview.component';
+import {
+  CrewDashboardPreviewKind,
+  CrewDashboardPreviewOpenTarget,
+  CrewDashboardPreviews
+} from '../../../models/crew-dashboard-preview.model';
 import { ToastService } from '../../../components/toast/toast.component';
 import { MuteDuration, MutedContentItem, MutedContentType, withMute } from '../../../models/notification.model';
 import { MuteDurationDialogComponent } from '../../../components/mute-duration-dialog/mute-duration-dialog.component';
 import { CopyTextButtonComponent } from '../../../components/copy-text-button/copy-text-button.component';
+import { PullRefreshController } from '../../../utils/pull-refresh.controller';
+
+type FleetPreviewKey = keyof CrewDashboardPreviews;
 
 @Component({
   selector: 'app-fleet-home',
@@ -37,13 +55,14 @@ import { CopyTextButtonComponent } from '../../../components/copy-text-button/co
     BrandLogoComponent,
     HubLoadingComponent,
     CollapsibleSectionComponent,
+    CrewDashboardPreviewComponent,
     MuteDurationDialogComponent,
     CopyTextButtonComponent
   ],
   templateUrl: './fleet-home.component.html',
   styleUrl: './fleet-home.component.css'
 })
-export class FleetHomeComponent implements OnInit, OnDestroy {
+export class FleetHomeComponent implements OnInit, AfterViewInit, OnDestroy {
   status: FleetStatus | null = null;
   nextAid: NextAidInfo | null = null;
   showNextAidWidget = false;
@@ -56,7 +75,24 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
   /** Status may load while locked; dashboard chrome waits for decrypt unlock. */
   encryptionReady = false;
   areaCounts: CrewNotificationAreaCounts = emptyAreaCounts();
+  /** Opens Administrative once when any nested item has a badge; user can still collapse. */
+  adminSectionExpanded = false;
+  private adminSectionAutoOpened = false;
   fleetImageSrc: string | null = null;
+  previews: CrewDashboardPreviews = {
+    forum: null,
+    chat: null,
+    gift: null,
+    library: null
+  };
+  previewLoading: Record<FleetPreviewKey, boolean> = {
+    forum: false,
+    chat: false,
+    gift: false,
+    library: false
+  };
+  pullDistance = 0;
+  refreshing = false;
 
   private router = inject(Router);
   private fleetService = inject(FleetService);
@@ -66,7 +102,20 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
   private cryptoSession = inject(CryptoSessionService);
   private images = inject(EncryptedImageCacheService);
   private forumPrefetch = inject(ForumListPrefetchService);
+  private dashboardPreviews = inject(FleetDashboardPreviewService);
+  private host = inject(ElementRef<HTMLElement>);
+  private cdr = inject(ChangeDetectorRef);
   private subscriptions = new Subscription();
+  private previewLoadGeneration = 0;
+  private readonly pullRefresh = new PullRefreshController({
+    edges: ['top'],
+    isBusy: () => this.loading || this.refreshing || !this.encryptionReady,
+    onRefresh: () => void this.refreshFromPull(),
+    onDistanceChange: distance => {
+      this.pullDistance = distance;
+      this.cdr.markForCheck();
+    }
+  });
 
   ngOnInit() {
     this.notificationService.getMutes().subscribe({
@@ -82,10 +131,12 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
         if (unlocked) {
           if (this.status?.fleetId) {
             this.forumPrefetch.prefetchFleetSpace(this.status.fleetId);
+            void this.refreshDashboardPreviews(this.status.fleetId);
           }
           void this.refreshFleetImage();
         } else {
           this.fleetImageSrc = null;
+          this.clearPreviews();
         }
       })
     );
@@ -96,7 +147,6 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
         switchMap(() =>
           this.fleetService.getStatus().pipe(
             catchError(() => {
-              // Keep the outer subscription alive so retry via statusChanged$ works.
               if (!this.status) {
                 this.loadError = true;
                 this.showNextAidWidget = false;
@@ -126,11 +176,18 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
     this.subscriptions.add(
       this.notificationService.areaCounts$.subscribe(counts => {
         this.areaCounts = counts;
+        this.maybeExpandAdminForBadges(counts);
       })
     );
   }
 
+  ngAfterViewInit() {
+    const scrollEl = (this.host.nativeElement as HTMLElement).closest('.nav-content') as HTMLElement | null;
+    this.pullRefresh.bind(scrollEl);
+  }
+
   ngOnDestroy() {
+    this.pullRefresh.unbind();
     this.subscriptions.unsubscribe();
   }
 
@@ -164,8 +221,16 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
     this.loading = false;
     void this.refreshFleetImage();
 
-    if (status.hasFleet && status.fleetId && this.cryptoSession.isUnlocked()) {
-      this.forumPrefetch.prefetchFleetSpace(status.fleetId);
+    if (status.hasFleet && status.fleetId) {
+      this.applyCachedDashboardPreviews(status.fleetId);
+      if (this.cryptoSession.isUnlocked()) {
+        this.forumPrefetch.prefetchFleetSpace(status.fleetId);
+        if (live) {
+          void this.refreshDashboardPreviews(status.fleetId);
+        }
+      }
+    } else {
+      this.clearPreviews();
     }
 
     if (live && this.showNextAidWidget) {
@@ -306,6 +371,36 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
     }
   }
 
+  openPreview(preview: CrewDashboardPreviewOpenTarget) {
+    if ('libraryKind' in preview) {
+      if (preview.libraryKind === 'unit') {
+        void this.router.navigate(['/app/fleet/library/units', preview.unit.unitId]);
+      }
+      return;
+    }
+    if ('roomId' in preview && 'messageId' in preview) {
+      void this.router.navigate(['/app/fleet/chats', preview.roomId], {
+        queryParams: { messageId: preview.messageId }
+      });
+      return;
+    }
+    if ('title' in preview && 'lastActivityAt' in preview) {
+      void this.router.navigate(['/app/fleet/forums', preview.id]);
+      return;
+    }
+    if ('message' in preview && 'timestamp' in preview) {
+      void this.router.navigate(['/app/fleet/gift-log', preview.id]);
+    }
+  }
+
+  onPreviewNeedMore(kind: CrewDashboardPreviewKind) {
+    const fleetId = this.status?.fleetId;
+    if (!fleetId || !this.cryptoSession.isUnlocked()) {
+      return;
+    }
+    void this.appendDashboardPreview(fleetId, kind);
+  }
+
   goToCreateFleet() {
     this.router.navigate(['/app/fleet/create']);
   }
@@ -356,5 +451,109 @@ export class FleetHomeComponent implements OnInit, OnDestroy {
 
   goToCrews() {
     this.router.navigate(['/app/fleet/crews']);
+  }
+
+  private applyCachedDashboardPreviews(fleetId: number): void {
+    const forum = this.dashboardPreviews.peekCachedPreview(fleetId, 'forum');
+    const chat = this.dashboardPreviews.peekCachedPreview(fleetId, 'chat');
+    const gift = this.dashboardPreviews.peekCachedPreview(fleetId, 'gift');
+    const library = this.libraryOfThingsEnabled
+      ? this.dashboardPreviews.peekCachedPreview(fleetId, 'library')
+      : null;
+
+    this.previews = {
+      forum: forum === undefined ? this.previews.forum : forum,
+      chat: chat === undefined ? this.previews.chat : chat,
+      gift: gift === undefined ? this.previews.gift : gift,
+      library: library === undefined ? this.previews.library : library
+    };
+    this.previewLoading = {
+      forum: forum === undefined,
+      chat: chat === undefined,
+      gift: gift === undefined,
+      library: this.libraryOfThingsEnabled && library === undefined
+    };
+  }
+
+  private async refreshDashboardPreviews(fleetId: number) {
+    const generation = ++this.previewLoadGeneration;
+    const keys: FleetPreviewKey[] = ['forum', 'chat', 'gift'];
+    if (this.libraryOfThingsEnabled) {
+      keys.push('library');
+    } else {
+      this.previews = { ...this.previews, library: null };
+      this.previewLoading = { ...this.previewLoading, library: false };
+    }
+
+    await Promise.all(keys.map(key => this.refreshDashboardPreview(fleetId, key, true, generation)));
+  }
+
+  private async refreshDashboardPreview(
+    fleetId: number,
+    previewKey: FleetPreviewKey,
+    force = false,
+    generation = this.previewLoadGeneration
+  ) {
+    if (!this.previews[previewKey]) {
+      this.previewLoading = { ...this.previewLoading, [previewKey]: true };
+    }
+    try {
+      const next = await this.dashboardPreviews.loadPreview(fleetId, previewKey, { force });
+      if (generation !== this.previewLoadGeneration || this.status?.fleetId !== fleetId) {
+        return;
+      }
+      this.previews = { ...this.previews, [previewKey]: next };
+    } finally {
+      if (generation === this.previewLoadGeneration && this.status?.fleetId === fleetId) {
+        this.previewLoading = { ...this.previewLoading, [previewKey]: false };
+      }
+    }
+  }
+
+  private clearPreviews() {
+    this.previews = { forum: null, chat: null, gift: null, library: null };
+    this.previewLoading = {
+      forum: false,
+      chat: false,
+      gift: false,
+      library: false
+    };
+  }
+
+  private async refreshFromPull() {
+    const fleetId = this.status?.fleetId;
+    if (!fleetId || !this.cryptoSession.isUnlocked()) {
+      this.refreshing = false;
+      return;
+    }
+    this.refreshing = true;
+    try {
+      await this.refreshDashboardPreviews(fleetId);
+    } finally {
+      this.refreshing = false;
+      this.pullDistance = 0;
+      this.cdr.markForCheck();
+    }
+  }
+
+  private async appendDashboardPreview(fleetId: number, kind: CrewDashboardPreviewKind) {
+    const next = await this.dashboardPreviews.appendPreviewItem(fleetId, kind);
+    if (this.status?.fleetId !== fleetId) {
+      return;
+    }
+    this.previews = { ...this.previews, [kind]: next };
+    this.cdr.markForCheck();
+  }
+
+  private maybeExpandAdminForBadges(counts: CrewNotificationAreaCounts): void {
+    if (this.adminSectionAutoOpened) {
+      return;
+    }
+    if ((counts.fleetProposals ?? 0) > 0
+      || (counts.fleetCrewmates ?? 0) > 0
+      || (counts.fleetSettings ?? 0) > 0) {
+      this.adminSectionExpanded = true;
+      this.adminSectionAutoOpened = true;
+    }
   }
 }

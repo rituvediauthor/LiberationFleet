@@ -13,91 +13,108 @@
 
   <div
     *ngIf="preview"
-    class="dash-preview"
-    role="button"
-    tabindex="0"
-    [attr.aria-label]="'Open preview'"
-    (click)="onOpen()"
-    (keydown)="onKeydown($event)"
+    #viewport
+    class="carousel-viewport"
     (touchstart)="onTouchStart($event)"
-    (touchend)="onTouchEnd($event)">
-    <article *ngIf="forumPreview as p" class="preview-forum">
-      <p class="meta">
-        <app-user-avatar
-          [resourceId]="p.authorAvatarResourceId"
-          [crewId]="crewId"
-          [fallbackInitial]="p.authorUsername"
-          size="sm"
-          [alt]="p.authorUsername + ' avatar'">
-        </app-user-avatar>
-        <span class="author">{{ p.authorUsername }}</span>
-        <span class="dot">·</span>
-        <span>{{ formatTime(p.lastActivityAt) }}</span>
-      </p>
-      <h2 class="title">{{ p.title }}</h2>
-      <img *ngIf="p.thumbnailUrl" class="thumb" [src]="p.thumbnailUrl" alt="" />
-      <p *ngIf="p.body" class="body">{{ p.body }}</p>
-    </article>
+    (touchmove)="onTouchMove($event)"
+    (touchend)="onTouchEnd()"
+    (touchcancel)="onTouchEnd()">
+    <div
+      class="carousel-track"
+      [class.dragging]="carousel.isDragging"
+      [style.transform]="trackTransform">
+      <div
+        class="carousel-slide"
+        *ngFor="let item of items; let i = index"
+        role="button"
+        tabindex="0"
+        [attr.aria-label]="'Open preview ' + (i + 1)"
+        [attr.aria-hidden]="i !== activeIndex"
+        (click)="onOpen(item)"
+        (keydown)="onKeydown($event)">
+        <article *ngIf="forumPreview" class="preview-forum dash-preview">
+          <p class="meta">
+            <app-user-avatar
+              [resourceId]="asForum(item).authorAvatarResourceId"
+              [crewId]="crewId"
+              [fleetId]="fleetId"
+              [fallbackInitial]="asForum(item).authorUsername"
+              size="sm"
+              [alt]="asForum(item).authorUsername + ' avatar'">
+            </app-user-avatar>
+            <span class="author">{{ asForum(item).authorUsername }}</span>
+            <span class="dot">·</span>
+            <span>{{ formatTime(asForum(item).lastActivityAt) }}</span>
+          </p>
+          <h2 class="title">{{ asForum(item).title }}</h2>
+          <img *ngIf="asForum(item).thumbnailUrl" class="thumb" [src]="asForum(item).thumbnailUrl" alt="" />
+          <p *ngIf="asForum(item).body" class="body">{{ asForum(item).body }}</p>
+        </article>
 
-    <article *ngIf="chatPreview as p" class="preview-chat">
-      <p class="meta">
-        <app-user-avatar
-          [anonymous]="!!p.isAnonymous"
-          [resourceId]="p.authorAvatarResourceId"
-          [crewId]="crewId"
-          [fallbackInitial]="p.isAnonymous ? '' : p.authorUsername"
-          size="sm"
-          [alt]="p.isAnonymous ? '' : p.authorUsername + ' avatar'">
-        </app-user-avatar>
-        <strong>{{ p.authorUsername }}</strong>
-        <span class="dot">·</span>
-        <span>{{ formatTime(p.createdAt) }}</span>
-      </p>
-      <p class="body">{{ p.body }}</p>
-      <p *ngIf="p.hasAttachments && p.body !== 'Attachment'" class="attach-hint">Has attachment</p>
-    </article>
+        <article *ngIf="chatPreview" class="preview-chat dash-preview">
+          <p class="meta">
+            <app-user-avatar
+              [anonymous]="!!asChat(item).isAnonymous"
+              [resourceId]="asChat(item).authorAvatarResourceId"
+              [crewId]="crewId"
+              [fleetId]="fleetId"
+              [fallbackInitial]="asChat(item).isAnonymous ? '' : asChat(item).authorUsername"
+              size="sm"
+              [alt]="asChat(item).isAnonymous ? '' : asChat(item).authorUsername + ' avatar'">
+            </app-user-avatar>
+            <strong>{{ asChat(item).authorUsername }}</strong>
+            <span class="dot">·</span>
+            <span>{{ formatTime(asChat(item).createdAt) }}</span>
+          </p>
+          <p class="body">{{ asChat(item).body }}</p>
+          <p *ngIf="asChat(item).hasAttachments && asChat(item).body !== 'Attachment'" class="attach-hint">Has attachment</p>
+        </article>
 
-    <article *ngIf="giftPreview as p" class="preview-gift">
-      <p class="body">{{ p.message }}</p>
-      <div class="gift-meta" *ngIf="p.categoryLabel || p.unverified">
-        <span *ngIf="p.categoryLabel" class="badge">{{ p.categoryLabel }}</span>
-        <span *ngIf="p.unverified" class="badge warn">Unverified</span>
+        <article *ngIf="giftPreview" class="preview-gift dash-preview">
+          <p class="body">{{ asGift(item).message }}</p>
+          <div class="gift-meta" *ngIf="asGift(item).categoryLabel || asGift(item).unverified">
+            <span *ngIf="asGift(item).categoryLabel" class="badge">{{ asGift(item).categoryLabel }}</span>
+            <span *ngIf="asGift(item).unverified" class="badge warn">Unverified</span>
+          </div>
+          <time class="time">{{ formatTime(asGift(item).timestamp) }}</time>
+        </article>
+
+        <ng-container *ngIf="libraryPreview">
+          <app-library-item-card
+            *ngIf="asLibraryUnit(item) as unit"
+            [item]="unit.unit"
+            [showFavorite]="true">
+          </app-library-item-card>
+
+          <article *ngIf="asLibraryQuest(item) as quest" class="preview-quest dash-preview">
+            <p class="meta">{{ quest.task.creatorUsername }}</p>
+            <h2 class="title">{{ quest.task.title }}</h2>
+            <p *ngIf="quest.dueLabel" class="due">{{ quest.dueLabel }}</p>
+            <p class="value">{{ questValueNote(quest.task.value) }}</p>
+          </article>
+        </ng-container>
       </div>
-      <time class="time">{{ formatTime(p.timestamp) }}</time>
-    </article>
-
-    <app-library-item-card
-      *ngIf="libraryUnitPreview as p"
-      [item]="p.unit"
-      [showFavorite]="true">
-    </app-library-item-card>
-
-    <article *ngIf="libraryQuestPreview as p" class="preview-quest">
-      <p class="meta">{{ p.task.creatorUsername }}</p>
-      <h2 class="title">{{ p.task.title }}</h2>
-      <p *ngIf="p.dueLabel" class="due">{{ p.dueLabel }}</p>
-      <p class="value">{{ questValueNote(p.task.value) }}</p>
-    </article>
-
+    </div>
   </div>
 
-  <div *ngIf="libraryPreview as p" class="library-carousel-meta">
-    <div class="library-carousel-nav" *ngIf="hasLibraryCarouselControls">
+  <div *ngIf="preview && hasCarouselControls" class="carousel-meta">
+    <div class="carousel-nav" *ngIf="showDesktopArrows">
       <button
         type="button"
-        class="library-carousel-button"
-        aria-label="Previous library preview"
-        (click)="showPreviousLibraryItem($event)">
+        class="carousel-button"
+        aria-label="Previous preview"
+        (click)="showPrevious($event)">
         <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
       </button>
-      <span class="library-carousel-count">{{ activeLibraryIndex + 1 }} / {{ p.items.length }}</span>
+      <span class="carousel-count">{{ activeIndex + 1 }} / {{ items.length }}</span>
       <button
         type="button"
-        class="library-carousel-button"
-        aria-label="Next library preview"
-        (click)="showNextLibraryItem($event)">
+        class="carousel-button"
+        aria-label="Next preview"
+        (click)="showNext($event)">
         <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
       </button>
     </div>
+    <span *ngIf="useSwipe" class="carousel-count swipe-count">{{ activeIndex + 1 }} / {{ items.length }}</span>
   </div>
 </div>

@@ -18,6 +18,7 @@ import {
   ReceptionOrderEntry
 } from '../../../models/gift.model';
 import { PullRefreshController } from '../../../utils/pull-refresh.controller';
+import { hapticCelebration } from '../../../utils/haptic.util';
 import { CopyTextButtonComponent } from '../../../components/copy-text-button/copy-text-button.component';
 import { formatSurvivalThresholdMonth } from '../../../utils/survival-threshold-month.util';
 
@@ -251,6 +252,7 @@ export class FleetRecordGiftComponent implements OnInit, AfterViewInit, OnDestro
     this.fleetService.recordGifts({ gifts }).subscribe({
       next: result => {
         if (result.success) {
+          void hapticCelebration();
           this.toastService.success(result.message || 'Gifts recorded');
           void this.router.navigate(['/app/fleet/gift-log']);
           return;

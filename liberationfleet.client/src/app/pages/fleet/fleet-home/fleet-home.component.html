@@ -8,6 +8,15 @@
     </app-hub-loading>
 
     <ng-container *ngIf="!loading && status?.hasFleet && encryptionReady">
+      <div
+        class="pull-refresh"
+        [class.active]="pullDistance > 8 || refreshing"
+        [style.height.px]="refreshing ? 36 : pullDistance"
+        aria-hidden="true">
+        <span *ngIf="refreshing">Refreshing…</span>
+        <span *ngIf="!refreshing && pullDistance >= 56">Release to refresh</span>
+        <span *ngIf="!refreshing && pullDistance > 8 && pullDistance < 56">Pull to refresh</span>
+      </div>
       <div class="fleet-dashboard">
         <h1 class="sr-only">{{ status?.fleetName || 'Fleet' }}</h1>
 
@@ -59,63 +68,93 @@
             <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
           </button>
 
-          <div class="menu-link menu-link-split fleet-name-link">
-            <button type="button" class="menu-link-main" (click)="goToForums()">
+          <app-crew-dashboard-preview
+            [preview]="previews.forum"
+            [loading]="previewLoading.forum"
+            [fleetId]="status?.fleetId ?? null"
+            (open)="openPreview($event)"
+            (needMore)="onPreviewNeedMore($event)">
+            <div class="menu-link menu-link-split fleet-name-link">
+              <button type="button" class="menu-link-main" (click)="goToForums()">
+                <span class="menu-icon-wrap">
+                  <app-brand-logo
+                    class="menu-brand-logo"
+                    variant="fleet"
+                    size="sm"
+                    alt=""
+                    [customSrc]="fleetImageSrc">
+                  </app-brand-logo>
+                  <app-content-badge [count]="areaCounts.fleetForums"></app-content-badge>
+                </span>
+                <span class="menu-label">{{ status?.fleetName }}</span>
+              </button>
+              <button
+                type="button"
+                class="space-mute-btn"
+                [class.active]="spaceMuted"
+                (click)="openSpaceMute($event)"
+                [attr.aria-label]="spaceMuted ? 'Posts muted. Change mute' : 'Mute posts'">
+                <i class="fa-solid" [class.fa-bell-slash]="spaceMuted" [class.fa-bell]="!spaceMuted" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="menu-chevron-btn" (click)="goToForums()" aria-label="Open posts">
+                <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+              </button>
+            </div>
+          </app-crew-dashboard-preview>
+
+          <app-crew-dashboard-preview
+            [preview]="previews.chat"
+            [loading]="previewLoading.chat"
+            [fleetId]="status?.fleetId ?? null"
+            (open)="openPreview($event)"
+            (needMore)="onPreviewNeedMore($event)">
+            <button type="button" class="menu-link" (click)="goToChats()">
               <span class="menu-icon-wrap">
-                <app-brand-logo
-                  class="menu-brand-logo"
-                  variant="fleet"
-                  size="sm"
-                  alt=""
-                  [customSrc]="fleetImageSrc">
-                </app-brand-logo>
-                <app-content-badge [count]="areaCounts.fleetForums"></app-content-badge>
+                <i class="fa-solid fa-comments menu-icon" aria-hidden="true"></i>
+                <app-content-badge [count]="areaCounts.fleetChats"></app-content-badge>
               </span>
-              <span class="menu-label">{{ status?.fleetName }}</span>
-            </button>
-            <button
-              type="button"
-              class="space-mute-btn"
-              [class.active]="spaceMuted"
-              (click)="openSpaceMute($event)"
-              [attr.aria-label]="spaceMuted ? 'Posts muted. Change mute' : 'Mute posts'">
-              <i class="fa-solid" [class.fa-bell-slash]="spaceMuted" [class.fa-bell]="!spaceMuted" aria-hidden="true"></i>
-            </button>
-            <button type="button" class="menu-chevron-btn" (click)="goToForums()" aria-label="Open posts">
+              <span class="menu-label">Chats</span>
               <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
             </button>
-          </div>
+          </app-crew-dashboard-preview>
 
-          <button type="button" class="menu-link" (click)="goToChats()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-comments menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.fleetChats"></app-content-badge>
-            </span>
-            <span class="menu-label">Chats</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
+          <app-crew-dashboard-preview
+            [preview]="previews.gift"
+            [loading]="previewLoading.gift"
+            [fleetId]="status?.fleetId ?? null"
+            (open)="openPreview($event)"
+            (needMore)="onPreviewNeedMore($event)">
+            <button type="button" class="menu-link" (click)="goToGiftLog()">
+              <span class="menu-icon-wrap">
+                <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
+                <app-content-badge [count]="areaCounts.fleetGiftLog"></app-content-badge>
+              </span>
+              <span class="menu-label">Giving Season</span>
+              <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+            </button>
+          </app-crew-dashboard-preview>
 
-          <button
-            type="button"
-            class="menu-link"
-            (click)="goToGiftLog()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
-              <app-content-badge [count]="areaCounts.fleetGiftLog"></app-content-badge>
-            </span>
-            <span class="menu-label">Giving Season</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
+          <app-crew-dashboard-preview
+            *ngIf="libraryOfThingsEnabled"
+            [preview]="previews.library"
+            [loading]="previewLoading.library"
+            [fleetId]="status?.fleetId ?? null"
+            (open)="openPreview($event)"
+            (needMore)="onPreviewNeedMore($event)">
+            <button type="button" class="menu-link" (click)="goToLibrary()">
+              <span class="menu-icon-wrap">
+                <i class="fa-solid fa-boxes-stacked menu-icon" aria-hidden="true"></i>
+              </span>
+              <span class="menu-label">Library of Things</span>
+              <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
+            </button>
+          </app-crew-dashboard-preview>
 
-          <button type="button" class="menu-link" *ngIf="libraryOfThingsEnabled" (click)="goToLibrary()">
-            <span class="menu-icon-wrap">
-              <i class="fa-solid fa-boxes-stacked menu-icon" aria-hidden="true"></i>
-            </span>
-            <span class="menu-label">Library of Things</span>
-            <i class="fa-solid fa-angle-right menu-chevron" aria-hidden="true"></i>
-          </button>
-
-          <app-collapsible-section class="admin-section" title="Administrative" variant="plain">
+          <app-collapsible-section
+            class="admin-section"
+            title="Administrative"
+            variant="plain"
+            [(expanded)]="adminSectionExpanded">
             <div class="admin-menu">
               <button type="button" class="menu-link" (click)="goToProposals()">
                 <span class="menu-icon-wrap">

@@ -39,6 +39,7 @@ import { ForumListPrefetchService } from '../../../services/forum-list-prefetch.
 import { ContentLiker } from '../../../models/gift.model';
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 import { OutsideMenuCloseDirective } from '../../../directives/outside-menu-close.directive';
+import { PullRefreshController } from '../../../utils/pull-refresh.controller';
 
 @Component({
   selector: 'app-discussion-list',
@@ -104,9 +105,16 @@ export class DiscussionListComponent implements OnInit, AfterViewInit, OnDestroy
   private encryptionReload?: EncryptionReloadHandle;
   private listObserver?: IntersectionObserver;
   private scrollEl: HTMLElement | null = null;
-  private pullStartY: number | null = null;
   private pendingRestoreCount: number | null = null;
   private pendingRestoreScrollTop: number | null = null;
+  private readonly pullRefresh = new PullRefreshController({
+    edges: ['top'],
+    isBusy: () => this.loading || this.loadingMore || this.refreshing,
+    onRefresh: () => this.refreshFromTop(),
+    onDistanceChange: distance => {
+      this.pullDistance = distance;
+    }
+  });
 
   ngOnInit() {
     const kind = this.route.snapshot.data['discussionKind'] as DiscussionKind;
@@ -560,87 +568,11 @@ export class DiscussionListComponent implements OnInit, AfterViewInit, OnDestroy
     }
     this.unbindScrollContainer();
     this.scrollEl = el;
-    if (!el) {
-      return;
-    }
-    el.addEventListener('scroll', this.onScroll, { passive: true });
-    el.addEventListener('touchstart', this.onTouchStart, { passive: true });
-    el.addEventListener('touchmove', this.onTouchMove, { passive: false });
-    el.addEventListener('touchend', this.onTouchEnd, { passive: true });
-    el.addEventListener('wheel', this.onWheel, { passive: false });
+    this.pullRefresh.bind(el);
   }
 
   private unbindScrollContainer() {
-    if (!this.scrollEl) {
-      return;
-    }
-    this.scrollEl.removeEventListener('scroll', this.onScroll);
-    this.scrollEl.removeEventListener('touchstart', this.onTouchStart);
-    this.scrollEl.removeEventListener('touchmove', this.onTouchMove);
-    this.scrollEl.removeEventListener('touchend', this.onTouchEnd);
-    this.scrollEl.removeEventListener('wheel', this.onWheel);
+    this.pullRefresh.unbind();
     this.scrollEl = null;
   }
-
-  private readonly onScroll = () => {
-    const el = this.scrollEl;
-    if (!el) {
-      return;
-    }
-    if (el.scrollTop > 1) {
-      this.pullDistance = 0;
-    }
-  };
-
-  private readonly onTouchStart = (event: TouchEvent) => {
-    if ((this.scrollEl?.scrollTop ?? 1) > 1 || this.refreshing) {
-      this.pullStartY = null;
-      return;
-    }
-    this.pullStartY = event.touches[0]?.clientY ?? null;
-    this.pullDistance = 0;
-  };
-
-  private readonly onTouchMove = (event: TouchEvent) => {
-    if (this.pullStartY == null || this.refreshing) {
-      return;
-    }
-    if ((this.scrollEl?.scrollTop ?? 1) > 1) {
-      this.pullStartY = null;
-      this.pullDistance = 0;
-      return;
-    }
-    const currentY = event.touches[0]?.clientY ?? this.pullStartY;
-    const delta = currentY - this.pullStartY;
-    if (delta > 0) {
-      event.preventDefault();
-      this.pullDistance = Math.min(88, delta * 0.45);
-    } else {
-      this.pullDistance = 0;
-    }
-  };
-
-  private readonly onTouchEnd = () => {
-    if (this.pullDistance >= 56) {
-      this.refreshFromTop();
-    } else {
-      this.pullDistance = 0;
-    }
-    this.pullStartY = null;
-  };
-
-  private readonly onWheel = (event: WheelEvent) => {
-    const el = this.scrollEl;
-    if (!el || this.refreshing) {
-      return;
-    }
-    // At top, wheel upward (negative deltaY) arms/triggers refresh.
-    if (el.scrollTop <= 1 && event.deltaY < 0) {
-      event.preventDefault();
-      this.pullDistance = Math.min(88, this.pullDistance + Math.abs(event.deltaY) * 0.15);
-      if (this.pullDistance >= 56) {
-        this.refreshFromTop();
-      }
-    }
-  };
 }

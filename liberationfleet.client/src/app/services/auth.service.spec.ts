@@ -4,6 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from './auth.service';
 import { CryptoSessionService } from './crypto/crypto-session.service';
 import { CrewDashboardPreviewService } from './crew-dashboard-preview.service';
+import { FleetDashboardPreviewService } from './fleet-dashboard-preview.service';
 import { ForumListPrefetchService } from './forum-list-prefetch.service';
 import { NotificationHubService } from './notification-hub.service';
 import { PushNotificationRegistrationService } from './push-notification-registration.service';
@@ -32,6 +33,7 @@ describe('AuthService', () => {
   let httpMock: HttpTestingController;
   let forumPrefetch: jasmine.SpyObj<ForumListPrefetchService>;
   let crewDashboardPreview: jasmine.SpyObj<CrewDashboardPreviewService>;
+  let fleetDashboardPreview: jasmine.SpyObj<FleetDashboardPreviewService>;
 
   beforeEach(() => {
     clearAuthStorage();
@@ -41,6 +43,9 @@ describe('AuthService', () => {
       'invalidate'
     ]);
     crewDashboardPreview = jasmine.createSpyObj<CrewDashboardPreviewService>('CrewDashboardPreviewService', [
+      'clearSessionCache'
+    ]);
+    fleetDashboardPreview = jasmine.createSpyObj<FleetDashboardPreviewService>('FleetDashboardPreviewService', [
       'clearSessionCache'
     ]);
 
@@ -65,7 +70,8 @@ describe('AuthService', () => {
           )
         },
         { provide: ForumListPrefetchService, useValue: forumPrefetch },
-        { provide: CrewDashboardPreviewService, useValue: crewDashboardPreview }
+        { provide: CrewDashboardPreviewService, useValue: crewDashboardPreview },
+        { provide: FleetDashboardPreviewService, useValue: fleetDashboardPreview }
       ]
     });
 
@@ -150,9 +156,11 @@ describe('AuthService', () => {
     service.logout();
     expect(forumPrefetch.clearSessionCache).toHaveBeenCalled();
     expect(crewDashboardPreview.clearSessionCache).toHaveBeenCalled();
+    expect(fleetDashboardPreview.clearSessionCache).toHaveBeenCalled();
 
     forumPrefetch.clearSessionCache.calls.reset();
     crewDashboardPreview.clearSessionCache.calls.reset();
+    fleetDashboardPreview.clearSessionCache.calls.reset();
     service.establishSession({
       success: true,
       token: testJwt(1),
@@ -160,6 +168,7 @@ describe('AuthService', () => {
     });
     expect(forumPrefetch.clearSessionCache).toHaveBeenCalled();
     expect(crewDashboardPreview.clearSessionCache).toHaveBeenCalled();
+    expect(fleetDashboardPreview.clearSessionCache).toHaveBeenCalled();
   });
 
 
@@ -234,6 +243,12 @@ describe('AuthService token loading', () => {
           useValue: jasmine.createSpyObj<CrewDashboardPreviewService>('CrewDashboardPreviewService', [
             'clearSessionCache'
           ])
+        },
+        {
+          provide: FleetDashboardPreviewService,
+          useValue: jasmine.createSpyObj<FleetDashboardPreviewService>('FleetDashboardPreviewService', [
+            'clearSessionCache'
+          ])
         }
       ]
     });
@@ -302,6 +317,12 @@ describe('AuthService remembered recovery phrase auto-unlock', () => {
         {
           provide: CrewDashboardPreviewService,
           useValue: jasmine.createSpyObj<CrewDashboardPreviewService>('CrewDashboardPreviewService', [
+            'clearSessionCache'
+          ])
+        },
+        {
+          provide: FleetDashboardPreviewService,
+          useValue: jasmine.createSpyObj<FleetDashboardPreviewService>('FleetDashboardPreviewService', [
             'clearSessionCache'
           ])
         }

@@ -148,6 +148,19 @@ export class ForumListPrefetchService {
     return page;
   }
 
+  /**
+   * Peek a fresh fleet space prefetch without consuming it (dashboard previews).
+   */
+  peekFleetSpacePage(fleetId: number): PrefetchPage<FleetForumListItem> | null {
+    if (fleetId <= 0 || !this.isFreshForScope(this.fleetPage, fleetId)) {
+      if (this.fleetPage && this.fleetPage.scopeId !== fleetId) {
+        this.fleetPage = null;
+      }
+      return null;
+    }
+    return this.fleetPage;
+  }
+
   takeFleetSpacePage(fleetId: number): PrefetchPage<FleetForumListItem> | null {
     if (fleetId <= 0 || !this.isFreshForScope(this.fleetPage, fleetId)) {
       if (this.fleetPage && this.fleetPage.scopeId !== fleetId) {

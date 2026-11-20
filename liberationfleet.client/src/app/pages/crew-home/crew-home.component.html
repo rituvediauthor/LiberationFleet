@@ -10,6 +10,15 @@
 
     <ng-container *ngIf="!loading && membership?.hasCrew && encryptionReady">
       <ng-container *ngIf="membership as currentMembership">
+      <div
+        class="pull-refresh"
+        [class.active]="pullDistance > 8 || refreshing"
+        [style.height.px]="refreshing ? 36 : pullDistance"
+        aria-hidden="true">
+        <span *ngIf="refreshing">Refreshing…</span>
+        <span *ngIf="!refreshing && pullDistance >= 56">Release to refresh</span>
+        <span *ngIf="!refreshing && pullDistance > 8 && pullDistance < 56">Pull to refresh</span>
+      </div>
       <div class="crew-dashboard">
         <h1 class="sr-only">{{ currentMembership.crewName || 'Crew' }}</h1>
 
@@ -66,7 +75,8 @@
             [preview]="previews.forum"
             [loading]="previewLoading.forum"
             [crewId]="currentMembership.crewId ?? null"
-            (open)="openPreview($event)">
+            (open)="openPreview($event)"
+            (needMore)="onPreviewNeedMore($event)">
             <div class="menu-link menu-link-split crew-name-link">
               <button type="button" class="menu-link-main" (click)="goToForums()">
                 <span class="menu-icon-wrap">
@@ -99,7 +109,8 @@
             [preview]="previews.chat"
             [loading]="previewLoading.chat"
             [crewId]="currentMembership.crewId ?? null"
-            (open)="openPreview($event)">
+            (open)="openPreview($event)"
+            (needMore)="onPreviewNeedMore($event)">
             <button type="button" class="menu-link" [routerLink]="['/app/crew/chats']">
               <span class="menu-icon-wrap">
                 <i class="fa-solid fa-comments menu-icon" aria-hidden="true"></i>
@@ -114,7 +125,8 @@
             [preview]="previews.gift"
             [loading]="previewLoading.gift"
             [crewId]="currentMembership.crewId ?? null"
-            (open)="openPreview($event)">
+            (open)="openPreview($event)"
+            (needMore)="onPreviewNeedMore($event)">
             <button type="button" class="menu-link" (click)="goToGiftLog()">
               <span class="menu-icon-wrap">
                 <i class="fa-solid fa-gift menu-icon" aria-hidden="true"></i>
@@ -130,7 +142,8 @@
             [preview]="previews.library"
             [loading]="previewLoading.library"
             [crewId]="currentMembership.crewId ?? null"
-            (open)="openPreview($event)">
+            (open)="openPreview($event)"
+            (needMore)="onPreviewNeedMore($event)">
             <button type="button" class="menu-link" (click)="goToLibraryOfThings()">
               <span class="menu-icon-wrap">
                 <i class="fa-solid fa-boxes-stacked menu-icon" aria-hidden="true"></i>
@@ -141,7 +154,11 @@
             </button>
           </app-crew-dashboard-preview>
 
-          <app-collapsible-section class="admin-section" title="Administrative" variant="plain">
+          <app-collapsible-section
+            class="admin-section"
+            title="Administrative"
+            variant="plain"
+            [(expanded)]="adminSectionExpanded">
             <div class="admin-menu">
               <button type="button" class="menu-link" (click)="goToProposals()">
                 <span class="menu-icon-wrap">

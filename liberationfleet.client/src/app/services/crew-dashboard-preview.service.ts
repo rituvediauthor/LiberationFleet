@@ -4,9 +4,12 @@ import { catchError } from 'rxjs/operators';
 import { FORUM_DISCUSSION_CONFIG } from '../config/discussion.config';
 import {
   ChatDashboardPreview,
+  ChatDashboardPreviewItem,
   CrewDashboardPreviews,
   ForumDashboardPreview,
+  ForumDashboardPreviewItem,
   GiftDashboardPreview,
+  GiftDashboardPreviewItem,
   LibraryDashboardPreview,
   LibraryDashboardPreviewItem
 } from '../models/crew-dashboard-preview.model';
@@ -34,14 +37,13 @@ import {
   hasUsableLibraryPreviewTitle,
   isLibraryPreviewCandidateEligible,
   LibraryPreviewCandidate,
-  pickFirstAllowedAdult,
   shuffleArray,
   truncateDashboardPreview
 } from '../utils/dashboard-preview.util';
 
-const LIBRARY_UNIT_SAMPLE_LIMIT = 5;
-const LIBRARY_TASK_SAMPLE_LIMIT = 8;
-const LIBRARY_CAROUSEL_SIZE = 5;
+const INITIAL_PREVIEW_COUNT = 4;
+const LIBRARY_UNIT_SAMPLE_LIMIT = 40;
+const LIBRARY_TASK_SAMPLE_LIMIT = 40;
 const CHAT_PREVIEW_ROOM_BATCH = 3;
 const PREVIEW_CACHE_TTL_MS = 90_000;
 type CrewPreviewKey = keyof CrewDashboardPreviews;
@@ -54,6 +56,30 @@ interface PreviewCacheEntry {
 interface PersistedPreviewCache {
   userId: number;
   entries: [string, PreviewCacheEntry][];
+}
+
+interface ForumLazyState {
+  offset: number;
+  exhausted: boolean;
+  seenIds: Set<number>;
+}
+
+interface ChatLazyState {
+  roomId: number;
+  beforeMessageId: number | null;
+  exhausted: boolean;
+}
+
+interface GiftLazyState {
+  beforeId: number | null;
+  beforeCreatedAt: string | null;
+  exhausted: boolean;
+}
+
+interface LibraryLazyState {
+  pool: LibraryPreviewCandidate[];
+  cursor: number;
+  exhausted: boolean;
 }
 
 @Injectable({
@@ -74,7 +100,12 @@ export class CrewDashboardPreviewService {
   private storage = inject(AppStorageService);
   private cache = new Map<string, PreviewCacheEntry>();
   private inFlight = new Map<string, Promise<CrewDashboardPreviews[CrewPreviewKey]>>();
+  private appendInFlight = new Map<string, Promise<CrewDashboardPreviews[CrewPreviewKey]>>();
   private hydratedUserId: number | null = null;
+  private forumLazy = new Map<number, ForumLazyState>();
+  private chatLazy = new Map<number, ChatLazyState>();
+  private giftLazy = new Map<number, GiftLazyState>();
+  private libraryLazy = new Map<number, LibraryLazyState>();
 
   async loadPreviews(
     crewId: number,
@@ -112,6 +143,7 @@ export class CrewDashboardPreviewService {
     const cacheKey = this.getCacheKey(crewId, previewKey);
     if (options?.force) {
       this.cache.delete(cacheKey);
+      this.clearLazyState(crewId, previewKey);
     } else {
       const cached = this.cache.get(cacheKey);
       if (cached && this.isFresh(cached)) {
@@ -142,9 +174,39 @@ export class CrewDashboardPreviewService {
   }
 
   /**
-   * Last-seen tile for this crew/session state, including stale entries.
-   * `undefined` is a miss; `null` is a cached empty tile.
+   * Append one more item for swipe-ahead lazy loading. Returns the updated carousel
+   * (or the current cached value when exhausted / busy).
    */
+  async appendPreviewItem<K extends CrewPreviewKey>(
+    crewId: number,
+    previewKey: K
+  ): Promise<CrewDashboardPreviews[K]> {
+    if (crewId <= 0 || !this.cryptoSession.isUnlocked()) {
+      return this.peekCachedPreview(crewId, previewKey) ?? null as CrewDashboardPreviews[K];
+    }
+
+    const cacheKey = this.getCacheKey(crewId, previewKey);
+    const existingAppend = this.appendInFlight.get(cacheKey);
+    if (existingAppend) {
+      return existingAppend as Promise<CrewDashboardPreviews[K]>;
+    }
+
+    const pending = this.appendOne(crewId, previewKey)
+      .then(preview => {
+        if (preview) {
+          this.cache.set(cacheKey, { preview, fetchedAt: Date.now() });
+          this.persistCache();
+        }
+        return (preview ?? this.cache.get(cacheKey)?.preview ?? null) as CrewDashboardPreviews[K];
+      })
+      .finally(() => {
+        this.appendInFlight.delete(cacheKey);
+      });
+
+    this.appendInFlight.set(cacheKey, pending);
+    return pending;
+  }
+
   peekCachedPreview<K extends CrewPreviewKey>(
     crewId: number,
     previewKey: K
@@ -154,7 +216,6 @@ export class CrewDashboardPreviewService {
     }
 
     this.ensureHydrated();
-    // Never paint decrypted preview tiles before the 12-word unlock succeeds.
     if (!this.cryptoSession.isUnlocked()) {
       return undefined;
     }
@@ -168,31 +229,127 @@ export class CrewDashboardPreviewService {
   clearSessionCache(): void {
     this.cache.clear();
     this.inFlight.clear();
+    this.appendInFlight.clear();
+    this.forumLazy.clear();
+    this.chatLazy.clear();
+    this.giftLazy.clear();
+    this.libraryLazy.clear();
     this.hydratedUserId = null;
     this.storage.remove(StorageScope.Persistent, CREW_DASHBOARD_PREVIEW_CACHE_STORAGE_KEY);
   }
 
+  private clearLazyState(crewId: number, previewKey: CrewPreviewKey): void {
+    if (previewKey === 'forum') this.forumLazy.delete(crewId);
+    if (previewKey === 'chat') this.chatLazy.delete(crewId);
+    if (previewKey === 'gift') this.giftLazy.delete(crewId);
+    if (previewKey === 'library') this.libraryLazy.delete(crewId);
+  }
+
+  private async appendOne(
+    crewId: number,
+    previewKey: CrewPreviewKey
+  ): Promise<CrewDashboardPreviews[CrewPreviewKey]> {
+    const current = this.cache.get(this.getCacheKey(crewId, previewKey))?.preview ?? null;
+    if (previewKey === 'forum') {
+      return this.appendForumItem(crewId, current as ForumDashboardPreview | null);
+    }
+    if (previewKey === 'chat') {
+      return this.appendChatItem(crewId, current as ChatDashboardPreview | null);
+    }
+    if (previewKey === 'gift') {
+      return this.appendGiftItem(crewId, current as GiftDashboardPreview | null);
+    }
+    return this.appendLibraryItem(crewId, current as LibraryDashboardPreview | null);
+  }
+
   private async loadForumPreview(crewId: number): Promise<ForumDashboardPreview | null> {
+    this.forumLazy.set(crewId, { offset: 0, exhausted: false, seenIds: new Set() });
+    const items: ForumDashboardPreviewItem[] = [];
+    while (items.length < INITIAL_PREVIEW_COUNT) {
+      const next = await this.fetchNextForumItem(crewId);
+      if (!next) {
+        break;
+      }
+      items.push(next);
+    }
+    if (!items.length) {
+      return null;
+    }
+    const state = this.forumLazy.get(crewId);
+    return { kind: 'forum', items, hasMore: !(state?.exhausted ?? true) };
+  }
+
+  private async appendForumItem(
+    crewId: number,
+    current: ForumDashboardPreview | null
+  ): Promise<ForumDashboardPreview | null> {
+    if (current && !current.hasMore) {
+      return current;
+    }
+    const next = await this.fetchNextForumItem(crewId);
+    if (!next) {
+      if (!current) return null;
+      return { ...current, hasMore: false };
+    }
+    const items = [...(current?.items ?? []), next];
+    const state = this.forumLazy.get(crewId);
+    return { kind: 'forum', items, hasMore: !(state?.exhausted ?? true) };
+  }
+
+  private async fetchNextForumItem(crewId: number): Promise<ForumDashboardPreviewItem | null> {
+    const state = this.forumLazy.get(crewId) ?? {
+      offset: 0,
+      exhausted: false,
+      seenIds: new Set<number>()
+    };
+    if (state.exhausted) {
+      return null;
+    }
+
     const peeked = this.forumPrefetch.peekCrewSpacePage(crewId)?.items ?? [];
-    if (peeked.length) {
-      return this.toForumPreview(
-        pickFirstAllowedAdult(
-          peeked,
-          item => item.isAdultContent,
-          flag => this.adultContent.shouldShowEntry(flag)
-        )
-      );
+    if (peeked.length && state.offset < peeked.length) {
+      while (state.offset < peeked.length) {
+        const candidate = peeked[state.offset++];
+        this.forumLazy.set(crewId, state);
+        if (state.seenIds.has(candidate.id)) {
+          continue;
+        }
+        if (!this.adultContent.shouldShowEntry(candidate.isAdultContent)) {
+          continue;
+        }
+        const preview = this.toForumItem(candidate);
+        if (preview) {
+          state.seenIds.add(preview.id);
+          this.forumLazy.set(crewId, state);
+          return preview;
+        }
+      }
     }
 
     if (!this.cryptoSession.isUnlocked()) {
+      state.exhausted = true;
+      this.forumLazy.set(crewId, state);
       return null;
     }
 
     const page = await firstValueFrom(
-      this.discussionService.getPosts(FORUM_DISCUSSION_CONFIG, { offset: 0, limit: 5 })
+      this.discussionService.getPosts(FORUM_DISCUSSION_CONFIG, { offset: state.offset, limit: 5 })
     );
     const rawItems = (page.items ?? []) as DiscussionListItem[];
+    if (!rawItems.length) {
+      state.exhausted = true;
+      this.forumLazy.set(crewId, state);
+      return null;
+    }
+
+    let advanced = false;
     for (const candidate of rawItems) {
+      state.offset += 1;
+      advanced = true;
+      this.forumLazy.set(crewId, state);
+      if (state.seenIds.has(candidate.id)) {
+        continue;
+      }
       if (!this.adultContent.shouldShowEntry(candidate.isAdultContent)) {
         continue;
       }
@@ -200,15 +357,23 @@ export class CrewDashboardPreviewService {
         [candidate as ProposalListItem],
         crewId
       ) as DiscussionListItem[];
-      const preview = this.toForumPreview(item);
+      const preview = this.toForumItem(item);
       if (preview) {
+        state.seenIds.add(preview.id);
+        this.forumLazy.set(crewId, state);
         return preview;
       }
     }
-    return null;
+
+    if (!advanced || rawItems.length < 5) {
+      state.exhausted = true;
+      this.forumLazy.set(crewId, state);
+      return null;
+    }
+    return this.fetchNextForumItem(crewId);
   }
 
-  private toForumPreview(item: DiscussionListItem | null | undefined): ForumDashboardPreview | null {
+  private toForumItem(item: DiscussionListItem | null | undefined): ForumDashboardPreviewItem | null {
     if (!item) {
       return null;
     }
@@ -220,7 +385,6 @@ export class CrewDashboardPreviewService {
     }
 
     return {
-      kind: 'forum',
       id: item.id,
       authorUsername: item.authorUsername,
       authorAvatarResourceId: item.authorAvatarResourceId,
@@ -246,22 +410,109 @@ export class CrewDashboardPreviewService {
       .filter(room => this.adultContent.shouldShowEntry(room.isAdultContent))
       .sort((a, b) => new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime());
 
+    let seed: ChatDashboardPreviewItem | null = null;
+    let seedRoom: ChatRoomListItem | null = null;
     for (let index = 0; index < textRooms.length; index += CHAT_PREVIEW_ROOM_BATCH) {
       const batch = textRooms.slice(index, index + CHAT_PREVIEW_ROOM_BATCH);
-      const previews = await Promise.all(batch.map(room => this.loadLatestMessagePreview(crewId, room)));
-      const preview = previews.find(item => !!item);
-      if (preview) {
-        return preview;
+      for (const room of batch) {
+        const preview = await this.loadMessagePreview(crewId, room, undefined);
+        if (preview) {
+          seed = preview;
+          seedRoom = room;
+          break;
+        }
+      }
+      if (seed) {
+        break;
       }
     }
-    return null;
+
+    if (!seed || !seedRoom) {
+      return null;
+    }
+
+    this.chatLazy.set(crewId, {
+      roomId: seedRoom.id,
+      beforeMessageId: seed.messageId,
+      exhausted: false
+    });
+
+    const items: ChatDashboardPreviewItem[] = [seed];
+    while (items.length < INITIAL_PREVIEW_COUNT) {
+      const older = await this.fetchOlderChatMessage(crewId);
+      if (!older) {
+        break;
+      }
+      items.push(older);
+    }
+
+    const state = this.chatLazy.get(crewId);
+    return { kind: 'chat', items, hasMore: !(state?.exhausted ?? true) };
   }
 
-  private async loadLatestMessagePreview(
+  private async appendChatItem(
     crewId: number,
-    room: ChatRoomListItem
+    current: ChatDashboardPreview | null
   ): Promise<ChatDashboardPreview | null> {
-    const response = await firstValueFrom(this.chatService.getMessages(room.id, 1));
+    if (current && !current.hasMore) {
+      return current;
+    }
+    if (!this.chatLazy.has(crewId) && current?.items?.length) {
+      const last = current.items[current.items.length - 1];
+      this.chatLazy.set(crewId, {
+        roomId: last.roomId,
+        beforeMessageId: last.messageId,
+        exhausted: false
+      });
+    }
+    const next = await this.fetchOlderChatMessage(crewId);
+    if (!next) {
+      if (!current) return null;
+      return { ...current, hasMore: false };
+    }
+    const items = [...(current?.items ?? []), next];
+    const state = this.chatLazy.get(crewId);
+    return { kind: 'chat', items, hasMore: !(state?.exhausted ?? true) };
+  }
+
+  private async fetchOlderChatMessage(crewId: number): Promise<ChatDashboardPreviewItem | null> {
+    const state = this.chatLazy.get(crewId);
+    if (!state || state.exhausted || state.beforeMessageId == null) {
+      if (state) {
+        state.exhausted = true;
+        this.chatLazy.set(crewId, state);
+      }
+      return null;
+    }
+
+    const roomsResponse = await firstValueFrom(this.chatService.getRooms());
+    const room = (roomsResponse.items ?? []).find(r => r.id === state.roomId);
+    if (!room) {
+      state.exhausted = true;
+      this.chatLazy.set(crewId, state);
+      return null;
+    }
+
+    const preview = await this.loadMessagePreview(crewId, room, state.beforeMessageId);
+    if (!preview) {
+      state.exhausted = true;
+      this.chatLazy.set(crewId, state);
+      return null;
+    }
+
+    state.beforeMessageId = preview.messageId;
+    this.chatLazy.set(crewId, state);
+    return preview;
+  }
+
+  private async loadMessagePreview(
+    crewId: number,
+    room: ChatRoomListItem,
+    beforeMessageId?: number
+  ): Promise<ChatDashboardPreviewItem | null> {
+    const response = await firstValueFrom(
+      this.chatService.getMessages(room.id, 1, beforeMessageId)
+    );
     if (!response.success) {
       return null;
     }
@@ -271,7 +522,6 @@ export class CrewDashboardPreviewService {
     }
 
     const messages = await this.chatCrypto.decryptMessages(raw, { crewId });
-    // limit=1 arrives chronological after reverse — sole item is newest.
     const message = messages[messages.length - 1] as ChatMessage | undefined;
     if (!message) {
       return null;
@@ -279,7 +529,6 @@ export class CrewDashboardPreviewService {
 
     if (message.isRemovedByModerator) {
       return {
-        kind: 'chat',
         roomId: room.id,
         messageId: message.id,
         authorUsername: message.isAnonymous ? 'Anonymous' : (message.authorUsername || 'Unknown'),
@@ -307,7 +556,6 @@ export class CrewDashboardPreviewService {
     }
 
     return {
-      kind: 'chat',
       roomId: room.id,
       messageId: message.id,
       authorUsername: message.isAnonymous ? 'Anonymous' : (message.authorUsername || 'Unknown'),
@@ -324,32 +572,104 @@ export class CrewDashboardPreviewService {
       return null;
     }
 
-    const page = await firstValueFrom(this.giftService.getLogs({ limit: 1 }));
+    this.giftLazy.set(crewId, { beforeId: null, beforeCreatedAt: null, exhausted: false });
+    const items: GiftDashboardPreviewItem[] = [];
+    while (items.length < INITIAL_PREVIEW_COUNT) {
+      const next = await this.fetchNextGiftItem(crewId);
+      if (!next) {
+        break;
+      }
+      items.push(next);
+    }
+    if (!items.length) {
+      return null;
+    }
+    const state = this.giftLazy.get(crewId);
+    return { kind: 'gift', items, hasMore: !(state?.exhausted ?? true) };
+  }
+
+  private async appendGiftItem(
+    crewId: number,
+    current: GiftDashboardPreview | null
+  ): Promise<GiftDashboardPreview | null> {
+    if (current && !current.hasMore) {
+      return current;
+    }
+    if (!this.giftLazy.has(crewId) && current?.items?.length) {
+      const last = current.items[current.items.length - 1];
+      this.giftLazy.set(crewId, {
+        beforeId: last.id,
+        beforeCreatedAt: last.timestamp instanceof Date
+          ? last.timestamp.toISOString()
+          : String(last.timestamp),
+        exhausted: false
+      });
+    }
+    const next = await this.fetchNextGiftItem(crewId);
+    if (!next) {
+      if (!current) return null;
+      return { ...current, hasMore: false };
+    }
+    const items = [...(current?.items ?? []), next];
+    const state = this.giftLazy.get(crewId);
+    return { kind: 'gift', items, hasMore: !(state?.exhausted ?? true) };
+  }
+
+  private async fetchNextGiftItem(crewId: number): Promise<GiftDashboardPreviewItem | null> {
+    const state = this.giftLazy.get(crewId) ?? {
+      beforeId: null,
+      beforeCreatedAt: null,
+      exhausted: false
+    };
+    if (state.exhausted) {
+      return null;
+    }
+
+    const page = await firstValueFrom(
+      this.giftService.getLogs({
+        limit: 1,
+        beforeId: state.beforeId ?? undefined,
+        beforeCreatedAt: state.beforeCreatedAt ?? undefined
+      })
+    );
     const raw = page.items ?? [];
     if (!raw.length) {
+      state.exhausted = true;
+      this.giftLazy.set(crewId, state);
       return null;
     }
 
     const entries = await this.giftLogCrypto.decryptEntries(raw, crewId);
     const entry = entries[entries.length - 1] as GiftLogEntry | undefined;
     if (!entry) {
+      state.exhausted = true;
+      this.giftLazy.set(crewId, state);
       return null;
     }
+
+    state.beforeId = entry.id;
+    state.beforeCreatedAt = entry.timestamp instanceof Date
+      ? entry.timestamp.toISOString()
+      : String(entry.timestamp);
+    if (!page.hasMore) {
+      // still allow one more attempt; exhausted when empty page
+    }
+    this.giftLazy.set(crewId, state);
+
     if (entry.hasEncryptedContent && (
       !entry.message
       || entry.message.startsWith('[Unable to decrypt')
       || entry.message.startsWith('[Encrypted')
     )) {
-      return null;
+      return this.fetchNextGiftItem(crewId);
     }
 
     const message = truncateDashboardPreview(entry.message);
     if (!message) {
-      return null;
+      return this.fetchNextGiftItem(crewId);
     }
 
     return {
-      kind: 'gift',
       id: entry.id,
       message,
       categoryLabel: giftCategoryLabel(entry.customGiftCategory),
@@ -396,36 +716,68 @@ export class CrewDashboardPreviewService {
       ...(noDeadlineTasks ?? [])
     ].slice(0, LIBRARY_TASK_SAMPLE_LIMIT);
 
-    const candidates: LibraryPreviewCandidate[] = [
+    const candidates: LibraryPreviewCandidate[] = shuffleArray([
       ...rawUnits.map(unit => ({ type: 'unit' as const, unit })),
       ...rawTasks.map(task => ({ type: 'quest' as const, task }))
-    ].filter(isLibraryPreviewCandidateEligible);
-    const shuffled = shuffleArray(candidates);
+    ].filter(isLibraryPreviewCandidateEligible));
+
+    this.libraryLazy.set(crewId, { pool: candidates, cursor: 0, exhausted: candidates.length === 0 });
+
     const items: LibraryDashboardPreviewItem[] = [];
-    let cursor = 0;
-    while (items.length < LIBRARY_CAROUSEL_SIZE && cursor < shuffled.length) {
-      const batchSize = Math.min(
-        LIBRARY_CAROUSEL_SIZE - items.length,
-        shuffled.length - cursor
-      );
-      const batch = shuffled.slice(cursor, cursor + batchSize);
-      cursor += batchSize;
-      const resolved = await this.resolveLibraryPreviewItems(batch, crewId);
-      for (const item of resolved) {
-        if (items.length >= LIBRARY_CAROUSEL_SIZE) {
-          break;
-        }
-        items.push(item);
+    while (items.length < INITIAL_PREVIEW_COUNT) {
+      const next = await this.fetchNextLibraryItem(crewId);
+      if (!next) {
+        break;
       }
+      items.push(next);
     }
     if (!items.length) {
       return null;
     }
+    const state = this.libraryLazy.get(crewId);
+    return { kind: 'library', items, hasMore: !(state?.exhausted ?? true) };
+  }
 
-    return {
-      kind: 'library',
-      items
-    };
+  private async appendLibraryItem(
+    crewId: number,
+    current: LibraryDashboardPreview | null
+  ): Promise<LibraryDashboardPreview | null> {
+    if (current && !current.hasMore) {
+      return current;
+    }
+    const next = await this.fetchNextLibraryItem(crewId);
+    if (!next) {
+      if (!current) return null;
+      return { ...current, hasMore: false };
+    }
+    const items = [...(current?.items ?? []), next];
+    const state = this.libraryLazy.get(crewId);
+    return { kind: 'library', items, hasMore: !(state?.exhausted ?? true) };
+  }
+
+  private async fetchNextLibraryItem(crewId: number): Promise<LibraryDashboardPreviewItem | null> {
+    const state = this.libraryLazy.get(crewId);
+    if (!state || state.exhausted) {
+      return null;
+    }
+
+    while (state.cursor < state.pool.length) {
+      const batch = state.pool.slice(state.cursor, state.cursor + 1);
+      state.cursor += 1;
+      this.libraryLazy.set(crewId, state);
+      const resolved = await this.resolveLibraryPreviewItems(batch, crewId);
+      if (resolved[0]) {
+        if (state.cursor >= state.pool.length) {
+          state.exhausted = true;
+          this.libraryLazy.set(crewId, state);
+        }
+        return resolved[0];
+      }
+    }
+
+    state.exhausted = true;
+    this.libraryLazy.set(crewId, state);
+    return null;
   }
 
   private async resolveLibraryPreviewItems(

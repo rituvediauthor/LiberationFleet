@@ -1,4 +1,12 @@
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  inject,
+  OnDestroy,
+  OnInit
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -32,23 +40,20 @@ import { CrewDashboardPreviewService } from '../../services/crew-dashboard-previ
 import { CrewFindPanelComponent } from '../crew-find/crew-find-panel.component';
 import { CollapsibleSectionComponent } from '../../components/collapsible-section/collapsible-section.component';
 import { CrewDashboardPreviewComponent } from '../../components/crew-dashboard-preview/crew-dashboard-preview.component';
-import { CrewDashboardPreviewOpenTarget, CrewDashboardPreviews } from '../../models/crew-dashboard-preview.model';
+import {
+  CrewDashboardPreviewKind,
+  CrewDashboardPreviewOpenTarget,
+  CrewDashboardPreviews
+} from '../../models/crew-dashboard-preview.model';
 import { MuteDuration, MutedContentItem, MutedContentType, withMute } from '../../models/notification.model';
 import { MuteDurationDialogComponent } from '../../components/mute-duration-dialog/mute-duration-dialog.component';
 import { CopyTextButtonComponent } from '../../components/copy-text-button/copy-text-button.component';
 import { truncateNotificationPreview } from '../../utils/notification-preview.util';
 import { TextFieldLimits } from '../../utils/text-field-limits';
+import { PullRefreshController } from '../../utils/pull-refresh.controller';
 
 const CYCLE_THANKYOU_DISMISS_PREFIX = 'lf-cycle-thankyou-dismissed:';
 type CrewPreviewKey = keyof CrewDashboardPreviews;
-type PreviewAreaKey = 'crewForums' | 'crewChats' | 'crewGiftLog' | 'crewLibrary';
-const PREVIEW_REFRESH_POLL_MS = 5_000;
-const PREVIEW_AREA_TO_KEY: Record<PreviewAreaKey, CrewPreviewKey> = {
-  crewForums: 'forum',
-  crewChats: 'chat',
-  crewGiftLog: 'gift',
-  crewLibrary: 'library'
-};
 
 @Component({
   selector: 'app-crew-home',
@@ -73,7 +78,7 @@ const PREVIEW_AREA_TO_KEY: Record<PreviewAreaKey, CrewPreviewKey> = {
   templateUrl: './crew-home.component.html',
   styleUrl: './crew-home.component.css'
 })
-export class CrewHomeComponent implements OnInit, OnDestroy {
+export class CrewHomeComponent implements OnInit, AfterViewInit, OnDestroy {
   membership: CrewMembershipStatus | null = null;
   loading = true;
   loadError = false;
@@ -87,6 +92,9 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   muteTarget: { contentType: MutedContentType; resourceId: number; noun: string } | null = null;
   libraryOfThingsEnabled = true;
   areaCounts: CrewNotificationAreaCounts = emptyAreaCounts();
+  /** Opens Administrative once when any nested item has a badge; user can still collapse. */
+  adminSectionExpanded = false;
+  private adminSectionAutoOpened = false;
   crewImageSrc: string | null = null;
   previews: CrewDashboardPreviews = {
     forum: null,
@@ -100,6 +108,8 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     gift: false,
     library: false
   };
+  pullDistance = 0;
+  refreshing = false;
 
   showCycleThankYouPrompt = false;
   showCycleThankYouCompose = false;
@@ -121,12 +131,19 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   private dashboardPreviews = inject(CrewDashboardPreviewService);
   private profileService = inject(ProfileService);
   private toastService = inject(ToastService);
+  private host = inject(ElementRef<HTMLElement>);
+  private cdr = inject(ChangeDetectorRef);
   private subscriptions = new Subscription();
   private previewLoadGeneration = 0;
-  private previewPollTimer: ReturnType<typeof setInterval> | null = null;
-  private lastPreviewAreaCounts: Pick<CrewNotificationAreaCounts, PreviewAreaKey> = this.pickPreviewAreaCounts(
-    emptyAreaCounts()
-  );
+  private readonly pullRefresh = new PullRefreshController({
+    edges: ['top'],
+    isBusy: () => this.loading || this.refreshing || !this.encryptionReady,
+    onRefresh: () => void this.refreshFromPull(),
+    onDistanceChange: (distance) => {
+      this.pullDistance = distance;
+      this.cdr.markForCheck();
+    }
+  });
 
   ngOnInit() {
     this.notificationService.getMutes().subscribe({
@@ -192,19 +209,19 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     this.notificationService.refreshBadges();
     this.subscriptions.add(
       this.notificationService.areaCounts$.subscribe(counts => {
-        const previousCounts = this.lastPreviewAreaCounts;
         this.areaCounts = counts;
-        this.lastPreviewAreaCounts = this.pickPreviewAreaCounts(counts);
-        const crewId = this.membership?.hasCrew ? this.membership.crewId : null;
-        if (crewId && this.cryptoSession.isUnlocked()) {
-          void this.refreshChangedDashboardPreviews(crewId, previousCounts, this.lastPreviewAreaCounts);
-        }
+        this.maybeExpandAdminForBadges(counts);
       })
     );
   }
 
+  ngAfterViewInit() {
+    const scrollEl = (this.host.nativeElement as HTMLElement).closest('.nav-content') as HTMLElement | null;
+    this.pullRefresh.bind(scrollEl);
+  }
+
   ngOnDestroy() {
-    this.stopPreviewPolling();
+    this.pullRefresh.unbind();
     this.subscriptions.unsubscribe();
   }
 
@@ -393,26 +410,35 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
   }
 
   openPreview(preview: CrewDashboardPreviewOpenTarget) {
-    if ('kind' in preview) {
-      switch (preview.kind) {
-        case 'forum':
-          void this.router.navigate(['/app/crew/forums', preview.id]);
-          return;
-        case 'chat':
-          void this.router.navigate(['/app/crew/chats', preview.roomId], {
-            queryParams: { messageId: preview.messageId }
-          });
-          return;
-        case 'gift':
-          void this.router.navigate(['/app/crew/gift-log', preview.id]);
-          return;
+    if ('libraryKind' in preview) {
+      if (preview.libraryKind === 'unit') {
+        void this.router.navigate(['/app/crew/library-of-things/units', preview.unit.unitId]);
+      } else {
+        void this.router.navigate(['/app/crew/library-of-things/tasks', preview.task.taskId]);
       }
+      return;
     }
-    if (preview.libraryKind === 'unit') {
-      void this.router.navigate(['/app/crew/library-of-things/units', preview.unit.unitId]);
-    } else {
-      void this.router.navigate(['/app/crew/library-of-things/tasks', preview.task.taskId]);
+    if ('roomId' in preview && 'messageId' in preview) {
+      void this.router.navigate(['/app/crew/chats', preview.roomId], {
+        queryParams: { messageId: preview.messageId }
+      });
+      return;
     }
+    if ('title' in preview && 'lastActivityAt' in preview) {
+      void this.router.navigate(['/app/crew/forums', preview.id]);
+      return;
+    }
+    if ('message' in preview && 'timestamp' in preview) {
+      void this.router.navigate(['/app/crew/gift-log', preview.id]);
+    }
+  }
+
+  onPreviewNeedMore(kind: CrewDashboardPreviewKind) {
+    const crewId = this.membership?.crewId;
+    if (!crewId || !this.cryptoSession.isUnlocked()) {
+      return;
+    }
+    void this.appendDashboardPreview(crewId, kind);
   }
 
   private paintPersistedMembership() {
@@ -441,8 +467,6 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     this.maybeShowCycleThankYou(status);
     if (status.hasCrew && status.crewId) {
       this.applyCachedDashboardPreviews(status.crewId);
-      this.lastPreviewAreaCounts = this.pickPreviewAreaCounts(this.areaCounts);
-      this.startPreviewPolling();
       if (this.cryptoSession.isUnlocked()) {
         this.forumPrefetch.prefetchCrewSpace(status.crewId);
         if (live) {
@@ -450,7 +474,6 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
         }
       }
     } else {
-      this.stopPreviewPolling();
       this.clearPreviews();
     }
     if (live && this.showNextAidWidget) {
@@ -534,52 +557,41 @@ export class CrewHomeComponent implements OnInit, OnDestroy {
     };
   }
 
-  private startPreviewPolling() {
-    if (this.previewPollTimer !== null) {
+  private maybeExpandAdminForBadges(counts: CrewNotificationAreaCounts): void {
+    if (this.adminSectionAutoOpened) {
       return;
     }
-    this.previewPollTimer = setInterval(() => {
-      if (this.membership?.hasCrew) {
-        this.notificationService.refreshBadges(true);
-      }
-    }, PREVIEW_REFRESH_POLL_MS);
-  }
-
-  private stopPreviewPolling() {
-    if (this.previewPollTimer !== null) {
-      clearInterval(this.previewPollTimer);
-      this.previewPollTimer = null;
+    if ((counts.crewProposals ?? 0) > 0
+      || (counts.crewCrewmates ?? 0) > 0
+      || (counts.crewSettings ?? 0) > 0) {
+      this.adminSectionExpanded = true;
+      this.adminSectionAutoOpened = true;
     }
   }
 
-  private pickPreviewAreaCounts(
-    counts: CrewNotificationAreaCounts
-  ): Pick<CrewNotificationAreaCounts, PreviewAreaKey> {
-    return {
-      crewForums: counts.crewForums,
-      crewChats: counts.crewChats,
-      crewGiftLog: counts.crewGiftLog,
-      crewLibrary: counts.crewLibrary
-    };
+  private async refreshFromPull() {
+    const crewId = this.membership?.crewId;
+    if (!crewId || !this.cryptoSession.isUnlocked()) {
+      this.refreshing = false;
+      return;
+    }
+    this.refreshing = true;
+    try {
+      await this.refreshDashboardPreviews(crewId);
+    } finally {
+      this.refreshing = false;
+      this.pullDistance = 0;
+      this.cdr.markForCheck();
+    }
   }
 
-  private async refreshChangedDashboardPreviews(
-    crewId: number,
-    previousCounts: Pick<CrewNotificationAreaCounts, PreviewAreaKey>,
-    nextCounts: Pick<CrewNotificationAreaCounts, PreviewAreaKey>
-  ) {
-    const refreshes: Promise<void>[] = [];
-    for (const areaKey of Object.keys(PREVIEW_AREA_TO_KEY) as PreviewAreaKey[]) {
-      if (previousCounts[areaKey] === nextCounts[areaKey]) {
-        continue;
-      }
-      const previewKey = PREVIEW_AREA_TO_KEY[areaKey];
-      if (previewKey === 'library' && !this.libraryOfThingsEnabled) {
-        continue;
-      }
-      refreshes.push(this.refreshDashboardPreview(crewId, previewKey, true));
+  private async appendDashboardPreview(crewId: number, kind: CrewDashboardPreviewKind) {
+    const next = await this.dashboardPreviews.appendPreviewItem(crewId, kind);
+    if (this.membership?.crewId !== crewId) {
+      return;
     }
-    await Promise.all(refreshes);
+    this.previews = { ...this.previews, [kind]: next };
+    this.cdr.markForCheck();
   }
 
   private maybeShowCycleThankYou(status: CrewMembershipStatus) {

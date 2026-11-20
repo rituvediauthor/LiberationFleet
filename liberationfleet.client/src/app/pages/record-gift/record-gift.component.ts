@@ -21,6 +21,7 @@ import {
 import { EmergencyRequestListItem } from '../../models/emergency-request.model';
 import { EmergencyRequestService } from '../../services/emergency-request.service';
 import { PullRefreshController } from '../../utils/pull-refresh.controller';
+import { hapticCelebration } from '../../utils/haptic.util';
 import { CopyTextButtonComponent } from '../../components/copy-text-button/copy-text-button.component';
 import { formatSurvivalThresholdMonth } from '../../utils/survival-threshold-month.util';
 
@@ -462,6 +463,7 @@ export class RecordGiftComponent implements OnInit, AfterViewInit, OnDestroy {
     this.giftService.recordGifts(gifts, impersonateAs).subscribe({
       next: result => {
         if (result.success) {
+          void hapticCelebration();
           this.toastService.success(result.message || 'Gifts recorded');
           this.router.navigate(['/app/crew/gift-log']);
           return;

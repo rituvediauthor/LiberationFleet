@@ -2,8 +2,7 @@ import { LibraryTaskListItem, LibraryUnitListItem } from './library.model';
 
 export type CrewDashboardPreviewKind = 'forum' | 'chat' | 'gift' | 'library';
 
-export interface ForumDashboardPreview {
-  kind: 'forum';
+export interface ForumDashboardPreviewItem {
   id: number;
   authorUsername: string;
   authorAvatarResourceId?: string | null;
@@ -13,8 +12,13 @@ export interface ForumDashboardPreview {
   thumbnailUrl?: string | null;
 }
 
-export interface ChatDashboardPreview {
-  kind: 'chat';
+export interface ForumDashboardPreview {
+  kind: 'forum';
+  items: ForumDashboardPreviewItem[];
+  hasMore: boolean;
+}
+
+export interface ChatDashboardPreviewItem {
   roomId: number;
   messageId: number;
   authorUsername: string;
@@ -25,13 +29,24 @@ export interface ChatDashboardPreview {
   isAnonymous?: boolean;
 }
 
-export interface GiftDashboardPreview {
-  kind: 'gift';
+export interface ChatDashboardPreview {
+  kind: 'chat';
+  items: ChatDashboardPreviewItem[];
+  hasMore: boolean;
+}
+
+export interface GiftDashboardPreviewItem {
   id: number;
   message: string;
   categoryLabel: string;
   timestamp: Date | string;
   unverified: boolean;
+}
+
+export interface GiftDashboardPreview {
+  kind: 'gift';
+  items: GiftDashboardPreviewItem[];
+  hasMore: boolean;
 }
 
 export interface LibraryUnitDashboardPreview {
@@ -50,6 +65,7 @@ export type LibraryDashboardPreviewItem = LibraryUnitDashboardPreview | LibraryQ
 export interface LibraryDashboardPreview {
   kind: 'library';
   items: LibraryDashboardPreviewItem[];
+  hasMore: boolean;
 }
 
 export type CrewDashboardPreview =
@@ -59,9 +75,9 @@ export type CrewDashboardPreview =
   | LibraryDashboardPreview;
 
 export type CrewDashboardPreviewOpenTarget =
-  | ForumDashboardPreview
-  | ChatDashboardPreview
-  | GiftDashboardPreview
+  | ForumDashboardPreviewItem
+  | ChatDashboardPreviewItem
+  | GiftDashboardPreviewItem
   | LibraryDashboardPreviewItem;
 
 export interface CrewDashboardPreviews {

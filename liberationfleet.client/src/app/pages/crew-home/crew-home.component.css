@@ -7,6 +7,22 @@
   margin: 0 auto;
 }
 
+.pull-refresh {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  overflow: hidden;
+  height: 0;
+  color: var(--lf-color-text-secondary);
+  font-size: 13px;
+  transition: height 0.05s linear;
+}
+
+.pull-refresh.active {
+  opacity: 1;
+}
+
 /* While the hub logo is showing, fill the content shell and center it. */
 .crew-home:has(> app-hub-loading) {
   align-self: stretch;
