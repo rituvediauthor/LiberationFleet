@@ -10,7 +10,10 @@ import {
   UpdateProfileRequest,
   UserProfile
 } from '../models/profile.model';
-import { defaultSystemPlatformSelection } from '../utils/payment-platform-options.util';
+import {
+  defaultHandleForPlatform,
+  defaultSystemPlatformSelection
+} from '../utils/payment-platform-options.util';
 
 @Injectable({
   providedIn: 'root'
@@ -105,7 +108,7 @@ export class ProfileService {
       id: this.nextTempPlatformId--,
       platformId: selection.platformId,
       platform: selection.platform,
-      handle: '',
+      handle: defaultHandleForPlatform(selection.platform),
       customPlatformName: '',
       isPreferred: false
     };

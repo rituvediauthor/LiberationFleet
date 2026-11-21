@@ -6,6 +6,10 @@ import { PaymentPlatformOption } from '../../models/gift.model';
 import { ProfileService } from '../../services/profile.service';
 import { CharCounterComponent } from '../char-counter/char-counter.component';
 import { TextFieldLimits } from '../../utils/text-field-limits';
+import {
+  defaultHandleForPlatform,
+  IN_PERSON_HANDLE
+} from '../../utils/payment-platform-options.util';
 
 @Component({
   selector: 'app-payment-platform-editor',
@@ -39,6 +43,26 @@ export class PaymentPlatformEditorComponent {
 
   onFieldChange() {
     this.changed.emit();
+  }
+
+  onPlatformChange(account: PaymentPlatformAccount) {
+    if (this.isCustomPlatform(account)) {
+      account.platform = '';
+      if (account.handle.trim().toLowerCase() === IN_PERSON_HANDLE.toLowerCase()) {
+        account.handle = '';
+      }
+    } else {
+      const selected = this.platformOptions.find(option => option.id === account.platformId);
+      account.platform = selected?.name ?? '';
+      account.customPlatformName = '';
+      const handleIsBlankOrInPerson = !account.handle.trim()
+        || account.handle.trim().toLowerCase() === IN_PERSON_HANDLE.toLowerCase();
+      if (handleIsBlankOrInPerson) {
+        account.handle = defaultHandleForPlatform(account.platform);
+      }
+    }
+
+    this.onFieldChange();
   }
 
   onAdd() {

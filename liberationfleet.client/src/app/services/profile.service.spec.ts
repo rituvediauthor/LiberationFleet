@@ -89,7 +89,20 @@ describe('ProfileService', () => {
 
     expect(account.platformId).toBe(3);
     expect(account.platform).toBe('Cash App');
+    expect(account.handle).toBe('');
     expect(account.customPlatformName).toBe('');
+  });
+
+  it('should default new payment platforms to Cash/check with In Person handle when available', () => {
+    const account = service.createPaymentPlatformAccount([
+      { id: 3, name: 'Cash App' },
+      { id: 5, name: 'Cash/check' },
+      { id: 1, name: 'PayPal' }
+    ]);
+
+    expect(account.platformId).toBe(5);
+    expect(account.platform).toBe('Cash/check');
+    expect(account.handle).toBe('In Person');
   });
 
   it('should default new payment platforms to custom when no system options exist', () => {

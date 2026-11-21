@@ -35,6 +35,25 @@ describe('payment-platform-options.util', () => {
     });
   });
 
+  it('prefers Cash/check when present among system platforms', () => {
+    expect(
+      defaultSystemPlatformId([
+        { id: 2, name: 'Cash App' },
+        { id: 5, name: 'Cash/check' },
+        { id: 1, name: 'PayPal' }
+      ])
+    ).toBe(5);
+    expect(
+      defaultSystemPlatformSelection([
+        { id: 2, name: 'Venmo' },
+        { id: 5, name: 'Cash/check' }
+      ])
+    ).toEqual({
+      platformId: 5,
+      platform: 'Cash/check'
+    });
+  });
+
   it('falls back to custom when no system platforms exist', () => {
     expect(defaultSystemPlatformId([])).toBe(CUSTOM_PLATFORM_OPTION_ID);
     expect(defaultSystemPlatformSelection([])).toEqual({

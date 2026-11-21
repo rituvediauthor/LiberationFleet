@@ -176,7 +176,8 @@ public class ApplicationDbContext : DbContext, IUnitOfWork
                 new PaymentPlatform { Id = 2, Name = "Cash App", SortOrder = 2 },
                 new PaymentPlatform { Id = 3, Name = "Venmo", SortOrder = 3 },
                 new PaymentPlatform { Id = 4, Name = "Zelle", SortOrder = 4 },
-                new PaymentPlatform { Id = 5, Name = "Other", SortOrder = 5 });
+                // Prefer first in system lists so finance apps are clearly optional.
+                new PaymentPlatform { Id = 5, Name = "Cash/check", SortOrder = 0 });
         });
 
         modelBuilder.Entity<CrewPaymentPlatform>(entity =>

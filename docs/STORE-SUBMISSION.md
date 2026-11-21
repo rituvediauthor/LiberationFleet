@@ -1257,29 +1257,51 @@ Do this only after an internal TestFlight smoke test passed on a physical iPhone
 
 ### 2.10 App Review notes (paste into Notes)
 
+Put **Maya** in the App Review **Sign-in required** username/password fields. Paste the block below into **Notes**.
+
 ```
-Demo account (email/password sign-in; no Sign in with Apple):
+PRIMARY SIGN-IN (also in the Sign-in fields above)
 Email: maya.chen@lf-review.test
 Password: ReviewDemo!Harbor26
-
-Encryption unlock (12-word recovery phrase — required once after sign-in to read chat / LoT / proposals):
+12-word encryption unlock (required once after sign-in to read chat / LoT / proposals):
 abandon ability able about above absent absorb abstract absurd abuse access accident
 
-This account is captain of the private crew **Cedar Circle**, inside the private fleet **Harbor Mutual Aid** (second private crew: **River House**). Seeded data includes chat, verified gift log, Library of Things offerings + a quest, and an open proposal.
+WHAT THIS BUILD IS
+Liberation Fleet is a native mutual-aid coordination app for private crews and fleets: encrypted chat, gift logging, Library of Things lending/quests, and crew governance proposals with multi-member voting. This is not a thin website wrapper — the iOS binary uses native haptics, pull-to-refresh, and swipeable dashboard previews.
 
-Please:
-1. Sign in as Maya and unlock encryption with the recovery phrase above (you may choose Remember on this device).
-2. Open **Cedar Circle**.
-3. Open **General** chat (read seeded messages; send one if you like).
-4. Open the **gift log**, then **Library of Things**, then **Proposals** (vote on the childcare-channel proposal if still pending).
-5. Open fleet **Harbor Mutual Aid** to see multi-crew coordination.
-6. Optional: join a crew voice channel (microphone permission) and leave.
-7. Optional: open the donation screen. Donations are voluntary contributions to Liberation Fleet Co. for hosting and development. Checkout is Stripe in the system browser. They are not in-app purchases and they do not unlock features. Peer mutual aid is logged in the app and paid on Venmo, PayPal, Cash App, or Zelle — Liberation Fleet does not hold or transmit that money.
+Demo orgs are private: fleet Harbor Mutual Aid; crews Cedar Circle (Maya captain) and River House. Seeded: chat, verified gift log, LoT offerings + quest, open proposal.
 
-Message, post, and most media bodies are end-to-end encrypted. Reviewers can use the app’s own UI (chat, gift log, settings). Operators cannot read encrypted message bodies.
+WALKTHROUGH (Maya)
+1. Sign in → enter the recovery phrase above (Remember on this device is fine).
+2. Open Cedar Circle.
+3. Open General chat (read seeded messages; optionally send one).
+4. Open Giving Season / gift log, then Library of Things.
+5. Open Proposals and view the pending childcare-channel proposal.
+6. Open fleet Harbor Mutual Aid for multi-crew coordination.
+7. Optional: join a crew voice channel (mic permission) and leave.
+8. Optional: donation screen — voluntary support for Liberation Fleet Co. via Stripe in the system browser. Not IAP; does not unlock features. Peer aid is logged in-app and paid on Venmo/PayPal/Cash App/Zelle; we do not hold that money.
 
-The app is for adults 18+. Members can report content and block other members. Community Standards: https://liberationfleet.org/community-standards
-Privacy policy: https://liberationfleet.org/privacy
+PROPOSAL VOTING (needs multiple accounts)
+Crew proposals require votes from more than one member. Use these Cedar Circle accounts (same password as Maya: ReviewDemo!Harbor26). After each sign-in, unlock with that account’s phrase, open Cedar Circle → Proposals, then Approve or Reject the pending proposal.
+
+1) jordan.okonkwo@lf-review.test
+Phrase: account accuse achieve acid acoustic acquire across act action actor actress actual
+
+2) sam.rivera@lf-review.test
+Phrase: adapt add addict address adjust admit adult advance advice aerobic affair afford
+
+3) priya.nair@lf-review.test
+Phrase: afraid again age agent agree ahead aim air airport aisle alarm album
+
+4) lee.park@lf-review.test
+Phrase: alcohol alert alien all alley allow almost alone alpha already also alter
+
+(Optional second crew) avery.brooks@lf-review.test — River House captain
+Phrase: always amateur amazing among amount amused analyst anchor ancient anger angle angry
+
+ENCRYPTION / SAFETY
+Message, post, and most media bodies are end-to-end encrypted; operators cannot read those bodies. Reviewers use the in-app UI. Adults 18+. Members can report and block. Community Standards: https://liberationfleet.org/community-standards
+Privacy: https://liberationfleet.org/privacy
 ```
 
 Confirm the donation wording against Guideline 3.1.1 and the nonprofit fundraising rules (3.2.1 / 3.2.2) with counsel before you submit. If the iOS binary should not offer Stripe donations until that review is done, remove or hide the donate entry on iOS and say so in the notes.

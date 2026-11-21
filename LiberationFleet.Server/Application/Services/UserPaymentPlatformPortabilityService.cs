@@ -1,5 +1,6 @@
 using LiberationFleet.Server.Application.Common.Interfaces;
 using LiberationFleet.Server.Application.Common.Interfaces.Persistence;
+using LiberationFleet.Server.Domain;
 using LiberationFleet.Server.Domain.Entities;
 
 namespace LiberationFleet.Server.Application.Services;
@@ -7,6 +8,7 @@ namespace LiberationFleet.Server.Application.Services;
 /// <summary>
 /// Carries user payment handles across crew leave/join by detaching from the old
 /// crew catalog and remounting (by name) onto the new crew's platforms.
+/// Ensures every crewmate has a Cash/check · In Person default when none exist.
 /// </summary>
 public class UserPaymentPlatformPortabilityService(
     IUserRepository userRepository,
@@ -41,8 +43,14 @@ public class UserPaymentPlatformPortabilityService(
     public async Task RemountToCrewAsync(int userId, int crewId, CancellationToken cancellationToken = default)
     {
         var user = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
-        if (user is null || user.PaymentPlatforms.Count == 0)
+        if (user is null)
         {
+            return;
+        }
+
+        if (user.PaymentPlatforms.Count == 0)
+        {
+            await EnsureDefaultInPersonPlatformAsync(user, crewId, cancellationToken);
             return;
         }
 
@@ -83,6 +91,52 @@ public class UserPaymentPlatformPortabilityService(
                 user.PaymentPlatforms.Remove(account);
             }
         }
+
+        if (user.PaymentPlatforms.Count == 0)
+        {
+            await EnsureDefaultInPersonPlatformAsync(user, crewId, cancellationToken);
+            return;
+        }
+
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// If the user is in a crew and has no payment methods, add Cash/check · In Person.
+    /// </summary>
+    public async Task EnsureDefaultInPersonPlatformIfNeededAsync(
+        int userId,
+        int crewId,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await userRepository.GetByIdWithProfileAsync(userId, cancellationToken);
+        if (user is null || user.PaymentPlatforms.Count > 0)
+        {
+            return;
+        }
+
+        await EnsureDefaultInPersonPlatformAsync(user, crewId, cancellationToken);
+    }
+
+    private async Task EnsureDefaultInPersonPlatformAsync(
+        User user,
+        int crewId,
+        CancellationToken cancellationToken)
+    {
+        var platform = await CrewPaymentPlatformService.EnsurePlatformAsync(
+            crewPaymentPlatformRepository,
+            unitOfWork,
+            crewId,
+            PaymentPlatformDefaults.CashCheckName,
+            cancellationToken);
+
+        user.PaymentPlatforms.Add(new UserPaymentPlatform
+        {
+            CrewPaymentPlatformId = platform.Id,
+            PlatformName = platform.Name,
+            Handle = PaymentPlatformDefaults.InPersonHandle,
+            IsPreferred = true
+        });
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }

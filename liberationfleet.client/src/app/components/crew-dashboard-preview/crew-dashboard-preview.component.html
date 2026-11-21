@@ -106,7 +106,6 @@
         (click)="showPrevious($event)">
         <i class="fa-solid fa-angle-left" aria-hidden="true"></i>
       </button>
-      <span class="carousel-count">{{ activeIndex + 1 }} / {{ items.length }}</span>
       <button
         type="button"
         class="carousel-button"
@@ -115,6 +114,6 @@
         <i class="fa-solid fa-angle-right" aria-hidden="true"></i>
       </button>
     </div>
-    <span *ngIf="useSwipe" class="carousel-count swipe-count">{{ activeIndex + 1 }} / {{ items.length }}</span>
+    <div *ngIf="useSwipe" class="swipe-hint" aria-hidden="true">Swipe &gt;&gt;</div>
   </div>
 </div>

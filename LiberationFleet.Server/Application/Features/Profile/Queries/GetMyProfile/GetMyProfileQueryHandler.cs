@@ -20,6 +20,7 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
     private readonly IAppDonationRepository _donationRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly LibraryPriorityTierService _priorityTierService;
+    private readonly UserPaymentPlatformPortabilityService _paymentPlatformPortability;
 
     public GetMyProfileQueryHandler(
         IUserRepository userRepository,
@@ -31,7 +32,8 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
         ICurrentUserService currentUserService,
         IAppDonationRepository donationRepository,
         IUnitOfWork unitOfWork,
-        LibraryPriorityTierService priorityTierService)
+        LibraryPriorityTierService priorityTierService,
+        UserPaymentPlatformPortabilityService paymentPlatformPortability)
     {
         _userRepository = userRepository;
         _giftRepository = giftRepository;
@@ -43,6 +45,7 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
         _donationRepository = donationRepository;
         _unitOfWork = unitOfWork;
         _priorityTierService = priorityTierService;
+        _paymentPlatformPortability = paymentPlatformPortability;
     }
 
     public async Task<UserProfileDto?> Handle(GetMyProfileQuery request, CancellationToken cancellationToken)
@@ -70,6 +73,16 @@ public class GetMyProfileQueryHandler : IRequestHandler<GetMyProfileQuery, UserP
 
         if (membership is not null)
         {
+            await _paymentPlatformPortability.EnsureDefaultInPersonPlatformIfNeededAsync(
+                userId.Value,
+                membership.CrewId,
+                cancellationToken);
+            user = await _userRepository.GetByIdWithProfileAsync(userId.Value, cancellationToken);
+            if (user is null)
+            {
+                return null;
+            }
+
             var inNeedChanged = await CrewInNeedService.ApplyInNeedDefaultAsync(
                 userId.Value,
                 _userRepository,

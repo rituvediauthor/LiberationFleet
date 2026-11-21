@@ -255,15 +255,15 @@
   color: var(--lf-color-accent);
 }
 
-.carousel-count {
-  min-width: 42px;
+.swipe-hint {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
   text-align: center;
-  font-size: 12px;
-  color: var(--lf-color-text-secondary);
-}
-
-.swipe-count {
-  opacity: 0.85;
+  color: var(--lf-color-text-subtle);
+  opacity: 0.75;
+  user-select: none;
+  pointer-events: none;
 }
 
 :host-context([data-theme='dark']) .preview-root.has-preview {

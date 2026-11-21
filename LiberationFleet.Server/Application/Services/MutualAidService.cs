@@ -18,6 +18,7 @@ public partial class MutualAidService(
     IEmergencyRequestRepository emergencyRequestRepository,
     EmergencyReconciliationService emergencyReconciliationService,
     NotificationService notificationService,
+    UserPaymentPlatformPortabilityService paymentPlatformPortability,
     IUnitOfWork unitOfWork) : IMutualAidService, IMutualAidDevService
 {
     public async Task<SeasonStatusDto> GetSeasonStatusAsync(int userId, CancellationToken cancellationToken = default)
@@ -681,7 +682,16 @@ public partial class MutualAidService(
 
         if (current.User.PaymentPlatforms.Count == 0)
         {
-            return new SeasonReadyResultDto { Success = false, Message = "Register at least one payment platform before marking ready." };
+            await paymentPlatformPortability.EnsureDefaultInPersonPlatformIfNeededAsync(
+                userId,
+                membership.CrewId,
+                cancellationToken);
+            current = (await mutualAidRepository.GetActiveMembersWithUsersAsync(membership.CrewId, cancellationToken))
+                .FirstOrDefault(m => m.UserId == userId);
+            if (current is null || current.User.PaymentPlatforms.Count == 0)
+            {
+                return new SeasonReadyResultDto { Success = false, Message = "Register at least one payment platform before marking ready." };
+            }
         }
 
         membership.IsSeasonReady = true;

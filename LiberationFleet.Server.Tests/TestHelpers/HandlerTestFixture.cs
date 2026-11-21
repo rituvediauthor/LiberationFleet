@@ -121,7 +121,7 @@ public static class HandlerTestFixture
                 new() { Id = 2, Name = "Cash App", SortOrder = 2 },
                 new() { Id = 3, Name = "Venmo", SortOrder = 3 },
                 new() { Id = 4, Name = "Zelle", SortOrder = 4 },
-                new() { Id = 5, Name = "Other", SortOrder = 5 }
+                new() { Id = 5, Name = "Cash/check", SortOrder = 0 }
             });
         return mock;
     }
@@ -406,6 +406,10 @@ public static class HandlerTestFixture
     public static MutualAidService CreateMutualAidService(ApplicationDbContext context)
     {
         var membershipRepository = new CrewMembershipRepository(context);
+        var paymentPlatformPortability = new UserPaymentPlatformPortabilityService(
+            new UserRepository(context),
+            new CrewPaymentPlatformRepository(context),
+            context);
         return new MutualAidService(
             new MutualAidRepository(context),
             membershipRepository,
@@ -413,6 +417,7 @@ public static class HandlerTestFixture
             new EmergencyRequestRepository(context),
             new EmergencyReconciliationService(new MutualAidRepository(context)),
             CreateNotificationService(context),
+            paymentPlatformPortability,
             context);
     }
 

@@ -5,6 +5,7 @@ using LiberationFleet.Server.Application.Features.Library;
 using LiberationFleet.Server.Application.Features.Profile.Commands.UpdateProfile;
 using LiberationFleet.Server.Application.Features.Profile.Contracts;
 using LiberationFleet.Server.Application.Features.Profile.Queries.GetMyProfile;
+using LiberationFleet.Server.Application.Services;
 using LiberationFleet.Server.Domain.Entities;
 using LiberationFleet.Server.Tests.TestHelpers;
 using Moq;
@@ -122,6 +123,12 @@ public class GetMyProfileQueryHandlerTests
             .Setup(r => r.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(HandlerTestFixture.CreateCrew());
 
+        var unitOfWork = HandlerTestFixture.CreateUnitOfWorkMock();
+        var paymentPlatformPortability = new UserPaymentPlatformPortabilityService(
+            userRepository.Object,
+            HandlerTestFixture.CreateCrewPaymentPlatformRepositoryMock().Object,
+            unitOfWork.Object);
+
         return new GetMyProfileQueryHandler(
             userRepository.Object,
             giftRepository.Object,
@@ -131,8 +138,9 @@ public class GetMyProfileQueryHandlerTests
             HandlerTestFixture.CreateMutualAidServiceMock().Object,
             HandlerTestFixture.CreateCurrentUserServiceMock(currentUserId).Object,
             CreateDonationRepositoryMock().Object,
-            HandlerTestFixture.CreateUnitOfWorkMock().Object,
-            CreatePriorityTierService());
+            unitOfWork.Object,
+            CreatePriorityTierService(),
+            paymentPlatformPortability);
     }
 
     private static LibraryPriorityTierService CreatePriorityTierService()

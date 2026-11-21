@@ -3059,8 +3059,8 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations
                         new
                         {
                             Id = 5,
-                            Name = "Other",
-                            SortOrder = 5
+                            Name = "Cash/check",
+                            SortOrder = 0
                         });
                 });
 

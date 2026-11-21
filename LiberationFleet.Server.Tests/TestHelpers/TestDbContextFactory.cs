@@ -19,7 +19,7 @@ public static class TestDbContextFactory
             new PaymentPlatform { Id = 2, Name = "Cash App", SortOrder = 2 },
             new PaymentPlatform { Id = 3, Name = "Venmo", SortOrder = 3 },
             new PaymentPlatform { Id = 4, Name = "Zelle", SortOrder = 4 },
-            new PaymentPlatform { Id = 5, Name = "Other", SortOrder = 5 });
+            new PaymentPlatform { Id = 5, Name = "Cash/check", SortOrder = 0 });
         await context.SaveChangesAsync();
     }
 
@@ -139,7 +139,7 @@ public static class TestDbContextFactory
         ApplicationDbContext context,
         int crewId)
     {
-        var names = new[] { "PayPal", "Cash App", "Venmo", "Zelle", "Other" };
+        var names = new[] { "PayPal", "Cash App", "Venmo", "Zelle", "Cash/check" };
         var platforms = names.ToDictionary(
             name => name,
             name => new CrewPaymentPlatform { CrewId = crewId, Name = name });
