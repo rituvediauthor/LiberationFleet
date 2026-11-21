@@ -1,7 +1,7 @@
 /**
  * Swipe-to-next carousel (not free horizontal scroll).
  * Content follows the finger; release snaps to previous / current / next.
- * Swipe right (positive deltaX) → next; swipe left → previous.
+ * Swipe left (negative deltaX) → next; swipe right → previous.
  */
 export interface PreviewCarouselCallbacks {
   onIndexChange: (index: number) => void;
@@ -123,9 +123,9 @@ export class PreviewCarouselController {
       return;
     }
     event.preventDefault();
-    // Rubber-band at ends.
+    // Rubber-band at ends (right at start / left at end).
     let offset = dx;
-    if ((this.activeIndex <= 0 && dx < 0) || (this.activeIndex >= this.itemCount - 1 && dx > 0)) {
+    if ((this.activeIndex <= 0 && dx > 0) || (this.activeIndex >= this.itemCount - 1 && dx < 0)) {
       offset = dx * 0.35;
     }
     this.dragOffsetPx = offset;
@@ -143,12 +143,12 @@ export class PreviewCarouselController {
     this.lockedAxis = null;
     this.dragOffsetPx = 0;
 
-    // Swipe right (positive) → next; swipe left → previous.
-    if (offset >= threshold) {
+    // Swipe left (negative) → next; swipe right (positive) → previous.
+    if (offset <= -threshold) {
       this.showNext();
       return;
     }
-    if (offset <= -threshold) {
+    if (offset >= threshold) {
       this.showPrevious();
     }
   }

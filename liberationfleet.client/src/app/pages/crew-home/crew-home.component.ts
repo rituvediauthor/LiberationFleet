@@ -216,7 +216,8 @@ export class CrewHomeComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
-    const scrollEl = (this.host.nativeElement as HTMLElement).closest('.nav-content') as HTMLElement | null;
+    // .nav-content is a descendant (inside app-nav-layout), not an ancestor.
+    const scrollEl = (this.host.nativeElement as HTMLElement).querySelector('.nav-content') as HTMLElement | null;
     this.pullRefresh.bind(scrollEl);
   }
 
