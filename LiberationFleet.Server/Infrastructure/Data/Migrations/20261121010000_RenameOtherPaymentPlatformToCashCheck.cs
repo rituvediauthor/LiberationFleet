@@ -9,6 +9,7 @@ namespace LiberationFleet.Server.Infrastructure.Data.Migrations;
 /// <summary>
 /// Renames the global "Other" payment platform to "Cash/check" (sort first) and
 /// remaps crew/user platform names so in-person aid is the clear default.
+/// Uses SQL (not UpdateData) so EF does not require a mapped entity for the seed row.
 /// </summary>
 [DbContext(typeof(ApplicationDbContext))]
 [Migration("20261121010000_RenameOtherPaymentPlatformToCashCheck")]
@@ -17,12 +18,11 @@ public partial class RenameOtherPaymentPlatformToCashCheck : Migration
     /// <inheritdoc />
     protected override void Up(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.UpdateData(
-            table: "PaymentPlatforms",
-            keyColumn: "Id",
-            keyValue: 5,
-            columns: new[] { "Name", "SortOrder" },
-            values: new object[] { "Cash/check", 0 });
+        migrationBuilder.Sql("""
+            UPDATE [PaymentPlatforms]
+            SET [Name] = N'Cash/check', [SortOrder] = 0
+            WHERE [Id] = 5;
+            """);
 
         // Prefer an existing Cash/check crew platform when both Other and Cash/check exist.
         migrationBuilder.Sql("""
@@ -73,12 +73,11 @@ public partial class RenameOtherPaymentPlatformToCashCheck : Migration
     /// <inheritdoc />
     protected override void Down(MigrationBuilder migrationBuilder)
     {
-        migrationBuilder.UpdateData(
-            table: "PaymentPlatforms",
-            keyColumn: "Id",
-            keyValue: 5,
-            columns: new[] { "Name", "SortOrder" },
-            values: new object[] { "Other", 5 });
+        migrationBuilder.Sql("""
+            UPDATE [PaymentPlatforms]
+            SET [Name] = N'Other', [SortOrder] = 5
+            WHERE [Id] = 5;
+            """);
 
         migrationBuilder.Sql("""
             UPDATE CrewPaymentPlatforms
