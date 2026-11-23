@@ -40,6 +40,10 @@ import { EncryptedImageCacheService } from '../../../services/encrypted-image-ca
 import { truncateNotificationPreview } from '../../../utils/notification-preview.util';
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
 import {
+  commentRepliesNeedLoad,
+  mergeCommentRepliesById
+} from '../../../utils/comment-replies.util';
+import {
   clearNotificationHighlightParams,
   readNotificationHighlightId
 } from '../../../utils/notification-deep-link.util';
@@ -721,21 +725,12 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (comment.replies && comment.replies.length > 0) {
+    if (comment.replies && !commentRepliesNeedLoad(comment.replyCount, comment.replies)) {
       comment.repliesExpanded = true;
       return;
     }
 
-    this.proposalService.getCommentReplies(this.proposalId, comment.id).subscribe({
-      next: async replies => {
-        const scope = this.cryptoScope;
-        comment.replies = scope
-          ? await this.proposalCrypto.decryptComments(replies, scope, this.proposal?.usesAnonymousComments ?? true)
-          : replies;
-        comment.repliesExpanded = true;
-      },
-      error: () => this.toastService.error('Failed to load replies')
-    });
+    this.loadCommentReplies(comment.id);
   }
 
   deleteProposalFromMenu(event: Event) {
@@ -843,6 +838,9 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const root = this.proposal.comments.find(comment => comment.id === threadRootId);
+    const needsLoad = !!root && commentRepliesNeedLoad(root.replyCount, root.replies);
+
     this.proposal = {
       ...this.proposal,
       comments: this.proposal.comments.map(comment => {
@@ -850,14 +848,55 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
           return comment;
         }
 
+        const replies = mergeCommentRepliesById(comment.replies, [newComment]);
         return {
           ...comment,
-          replyCount: comment.replyCount + 1,
+          replyCount: Math.max(comment.replyCount + 1, replies.length),
           repliesExpanded: true,
-          replies: [...(comment.replies ?? []), newComment]
+          replies
         };
       })
     };
+
+    if (needsLoad) {
+      this.loadCommentReplies(threadRootId, newComment);
+    }
+  }
+
+  private loadCommentReplies(commentOrId: ProposalComment | number, ensureReply?: ProposalComment) {
+    const commentId = typeof commentOrId === 'number' ? commentOrId : commentOrId.id;
+    this.proposalService.getCommentReplies(this.proposalId, commentId).subscribe({
+      next: async replies => {
+        if (!this.proposal) {
+          return;
+        }
+        const current = this.proposal.comments.find(comment => comment.id === commentId);
+        const scope = this.cryptoScope;
+        const decrypted = scope
+          ? await this.proposalCrypto.decryptComments(replies, scope, this.proposal?.usesAnonymousComments ?? true)
+          : replies;
+        const merged = mergeCommentRepliesById(
+          current?.replies,
+          decrypted,
+          ensureReply ? [ensureReply] : undefined
+        );
+        this.proposal = {
+          ...this.proposal,
+          comments: this.proposal.comments.map(comment => {
+            if (comment.id !== commentId) {
+              return comment;
+            }
+            return {
+              ...comment,
+              replies: merged,
+              replyCount: Math.max(comment.replyCount, merged.length),
+              repliesExpanded: true
+            };
+          })
+        };
+      },
+      error: () => this.toastService.error('Failed to load replies')
+    });
   }
 
   private resolveReplyTargets(parentCommentId: number): {

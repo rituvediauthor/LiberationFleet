@@ -42,6 +42,10 @@ import { CrewService } from '../../../../services/crew.service';
 import { truncateNotificationPreview } from '../../../../utils/notification-preview.util';
 import { pendingAttachmentsAllowSubmit } from '../../../../utils/pending-attachment.util';
 import {
+  commentRepliesNeedLoad,
+  mergeCommentRepliesById
+} from '../../../../utils/comment-replies.util';
+import {
   clearNotificationHighlightParams,
   readNotificationHighlightId
 } from '../../../../utils/notification-deep-link.util';
@@ -690,29 +694,12 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (comment.replies && comment.replies.length > 0) {
+    if (comment.replies && !commentRepliesNeedLoad(comment.replyCount, comment.replies)) {
       comment.repliesExpanded = true;
       return;
     }
 
-    this.fleetService.getForumCommentReplies(this.postId, comment.id).subscribe({
-      next: async response => {
-        if (!response.success) {
-          this.toastService.error(response.message || 'Failed to load replies');
-          return;
-        }
-
-        const replies = response.items ?? [];
-        comment.replies = this.fleetId > 0
-          ? await this.forumCrypto.decryptComments(
-            replies as unknown as ProposalComment[],
-            { fleetId: this.fleetId }
-          ) as unknown as FleetForumComment[]
-          : replies;
-        comment.repliesExpanded = true;
-      },
-      error: () => this.toastService.error('Failed to load replies')
-    });
+    this.loadCommentReplies(comment.id);
   }
 
   deletePost() {
@@ -803,6 +790,9 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const root = this.post.comments.find(comment => comment.id === threadRootId);
+    const needsLoad = !!root && commentRepliesNeedLoad(root.replyCount, root.replies);
+
     this.post = {
       ...this.post,
       comments: this.post.comments.map(comment => {
@@ -810,14 +800,63 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
           return comment;
         }
 
+        const replies = mergeCommentRepliesById(comment.replies, [newComment]);
         return {
           ...comment,
-          replyCount: comment.replyCount + 1,
+          replyCount: Math.max(comment.replyCount + 1, replies.length),
           repliesExpanded: true,
-          replies: [...(comment.replies ?? []), newComment]
+          replies
         };
       })
     };
+
+    if (needsLoad) {
+      this.loadCommentReplies(threadRootId, newComment);
+    }
+  }
+
+  private loadCommentReplies(commentOrId: FleetForumComment | number, ensureReply?: FleetForumComment) {
+    const commentId = typeof commentOrId === 'number' ? commentOrId : commentOrId.id;
+    this.fleetService.getForumCommentReplies(this.postId, commentId).subscribe({
+      next: async response => {
+        if (!response.success) {
+          this.toastService.error(response.message || 'Failed to load replies');
+          return;
+        }
+        if (!this.post) {
+          return;
+        }
+
+        const current = this.post.comments.find(comment => comment.id === commentId);
+        const replies = response.items ?? [];
+        const decrypted = this.fleetId > 0
+          ? await this.forumCrypto.decryptComments(
+            replies as unknown as ProposalComment[],
+            { fleetId: this.fleetId }
+          ) as unknown as FleetForumComment[]
+          : replies;
+        const merged = mergeCommentRepliesById(
+          current?.replies,
+          decrypted,
+          ensureReply ? [ensureReply] : undefined
+        );
+        this.post = {
+          ...this.post,
+          comments: this.post.comments.map(comment => {
+            if (comment.id !== commentId) {
+              return comment;
+            }
+            return {
+              ...comment,
+              replies: merged,
+              replyCount: Math.max(comment.replyCount, merged.length),
+              repliesExpanded: true
+            };
+          })
+        };
+      },
+      error: () => this.toastService.error('Failed to load replies')
+    });
   }
 
   private resolveReplyTargets(parentCommentId: number): {
@@ -852,6 +891,11 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
         .filter(comment => comment.repliesExpanded)
         .map(comment => comment.id) ?? []
     );
+    const preservedReplies = new Map(
+      (this.post?.comments ?? [])
+        .filter(comment => comment.replies?.length)
+        .map(comment => [comment.id, comment.replies!] as const)
+    );
 
     this.loadPost({
       silent: true,
@@ -862,6 +906,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
 
         this.post.comments = this.post.comments.map(comment => ({
           ...comment,
+          replies: preservedReplies.get(comment.id) ?? comment.replies,
           repliesExpanded: expandedCommentIds.has(comment.id) ? true : comment.repliesExpanded
         }));
 

@@ -39,6 +39,10 @@ import { LocationHeaderComponent } from '../../../components/location-header/loc
 import { injectLocationHeaderInfo } from '../../../utils/inject-location-header';
 import { PendingAttachment } from '../../../models/proposal.model';
 import { pendingAttachmentsAllowSubmit } from '../../../utils/pending-attachment.util';
+import {
+  commentRepliesNeedLoad,
+  mergeCommentRepliesById
+} from '../../../utils/comment-replies.util';
 
 @Component({
   selector: 'app-gift-log-detail',
@@ -449,23 +453,12 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (comment.replies && comment.replies.length > 0) {
+    if (comment.replies && !commentRepliesNeedLoad(comment.replyCount, comment.replies)) {
       comment.repliesExpanded = true;
       return;
     }
 
-    this.giftService.getGiftCommentReplies(this.giftId, comment.id).subscribe({
-      next: async replies => {
-        comment.replies = this.crewId > 0
-          ? await this.discussionCrypto.decryptComments(
-            replies as ProposalComment[],
-            this.crewId
-          ) as GiftComment[]
-          : replies;
-        comment.repliesExpanded = true;
-      },
-      error: () => this.toastService.error('Failed to load replies')
-    });
+    this.loadCommentReplies(comment.id);
   }
 
   canPostComment(): boolean {
@@ -582,6 +575,9 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const root = this.gift.comments.find(comment => comment.id === threadRootId);
+    const needsLoad = !!root && commentRepliesNeedLoad(root.replyCount, root.replies);
+
     this.gift = {
       ...this.gift,
       commentCount: (this.gift.commentCount ?? 0) + 1,
@@ -590,14 +586,57 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
           return comment;
         }
 
+        const replies = mergeCommentRepliesById(comment.replies, [newComment]);
         return {
           ...comment,
-          replyCount: comment.replyCount + 1,
+          replyCount: Math.max(comment.replyCount + 1, replies.length),
           repliesExpanded: true,
-          replies: [...(comment.replies ?? []), newComment]
+          replies
         };
       })
     };
+
+    if (needsLoad) {
+      this.loadCommentReplies(threadRootId, newComment);
+    }
+  }
+
+  private loadCommentReplies(commentOrId: GiftComment | number, ensureReply?: GiftComment) {
+    const commentId = typeof commentOrId === 'number' ? commentOrId : commentOrId.id;
+    this.giftService.getGiftCommentReplies(this.giftId, commentId).subscribe({
+      next: async replies => {
+        if (!this.gift) {
+          return;
+        }
+        const current = this.gift.comments.find(comment => comment.id === commentId);
+        const decrypted = this.crewId > 0
+          ? await this.discussionCrypto.decryptComments(
+            replies as ProposalComment[],
+            this.crewId
+          ) as GiftComment[]
+          : replies;
+        const merged = mergeCommentRepliesById(
+          current?.replies,
+          decrypted,
+          ensureReply ? [ensureReply] : undefined
+        );
+        this.gift = {
+          ...this.gift,
+          comments: this.gift.comments.map(comment => {
+            if (comment.id !== commentId) {
+              return comment;
+            }
+            return {
+              ...comment,
+              replies: merged,
+              replyCount: Math.max(comment.replyCount, merged.length),
+              repliesExpanded: true
+            };
+          })
+        };
+      },
+      error: () => this.toastService.error('Failed to load replies')
+    });
   }
 
   private resolveReplyTargets(parentCommentId: number): {
@@ -734,6 +773,17 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
       this.loadError = '';
     }
 
+    const preservedReplies = options?.silent
+      ? new Map(
+        (this.gift?.comments ?? [])
+          .filter(comment => comment.replies?.length)
+          .map(comment => [comment.id, {
+            replies: comment.replies!,
+            repliesExpanded: !!comment.repliesExpanded
+          }] as const)
+      )
+      : null;
+
     this.giftService.getGiftDetail(this.giftId).subscribe({
       next: async detail => {
         try {
@@ -752,6 +802,19 @@ export class GiftLogDetailComponent implements OnInit, OnDestroy {
               detail.comments as ProposalComment[],
               this.crewId
             ) as GiftComment[];
+          }
+          if (preservedReplies?.size) {
+            entry.comments = entry.comments.map(comment => {
+              const preserved = preservedReplies.get(comment.id);
+              if (!preserved) {
+                return comment;
+              }
+              return {
+                ...comment,
+                replies: preserved.replies,
+                repliesExpanded: preserved.repliesExpanded
+              };
+            });
           }
           this.gift = entry;
           if (
