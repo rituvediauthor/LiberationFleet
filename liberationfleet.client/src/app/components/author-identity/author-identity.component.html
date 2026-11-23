@@ -1,0 +1,24 @@
+<span
+  class="author-identity"
+  [class.author-identity-link]="canNavigate"
+  [attr.role]="canNavigate ? 'link' : null"
+  [attr.tabindex]="canNavigate ? 0 : null"
+  [attr.aria-label]="canNavigate ? 'View ' + label + ' profile' : null"
+  (click)="openProfile($event)"
+  (keydown.enter)="openProfile($event)"
+  (keydown.space)="openProfile($event)">
+  <app-user-avatar
+    [anonymous]="anonymous"
+    [resourceId]="avatarResourceId"
+    [crewId]="crewId"
+    [fleetId]="fleetId"
+    [fallbackInitial]="anonymous ? '' : label"
+    [size]="size"
+    [alt]="anonymous ? '' : (label ? label + ' avatar' : '')">
+  </app-user-avatar>
+  @if (nameAsStrong) {
+    <strong>{{ label }}</strong>
+  } @else {
+    <span class="author">{{ label }}</span>
+  }
+</span>

@@ -1,16 +1,16 @@
 <article class="thread-entry" [class.compact]="compact">
   <p class="thread-entry-meta">
-    <app-user-avatar
-      class="thread-entry-avatar"
+    <app-author-identity
       [anonymous]="anonymous"
-      [resourceId]="avatarResourceId"
+      [userId]="authorUserId"
+      [username]="authorName"
+      [avatarResourceId]="avatarResourceId"
       [crewId]="crewId"
       [fleetId]="fleetId"
-      [fallbackInitial]="anonymous ? '' : authorName"
-      size="sm"
-      [alt]="anonymous ? '' : (authorName ? authorName + ' avatar' : '')">
-    </app-user-avatar>
-    <strong>{{ authorName }}</strong>
+      [linkScope]="linkScope"
+      [nameAsStrong]="true"
+      size="sm">
+    </app-author-identity>
     <span *ngIf="createdAt">·</span>
     <span *ngIf="createdAt">{{ createdAt | date:'short' }}</span>
   </p>

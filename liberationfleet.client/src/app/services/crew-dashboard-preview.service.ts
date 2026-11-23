@@ -386,6 +386,7 @@ export class CrewDashboardPreviewService {
 
     return {
       id: item.id,
+      authorUserId: item.authorUserId,
       authorUsername: item.authorUsername,
       authorAvatarResourceId: item.authorAvatarResourceId,
       lastActivityAt: item.lastActivityAt,
@@ -531,6 +532,7 @@ export class CrewDashboardPreviewService {
       return {
         roomId: room.id,
         messageId: message.id,
+        authorUserId: message.authorUserId,
         authorUsername: message.isAnonymous ? 'Anonymous' : (message.authorUsername || 'Unknown'),
         authorAvatarResourceId: message.isAnonymous ? null : message.authorAvatarResourceId,
         createdAt: message.createdAt,
@@ -558,6 +560,7 @@ export class CrewDashboardPreviewService {
     return {
       roomId: room.id,
       messageId: message.id,
+      authorUserId: message.authorUserId,
       authorUsername: message.isAnonymous ? 'Anonymous' : (message.authorUsername || 'Unknown'),
       authorAvatarResourceId: message.isAnonymous ? null : message.authorAvatarResourceId,
       createdAt: message.createdAt,

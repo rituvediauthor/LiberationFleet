@@ -45,7 +45,7 @@ import { MentionTextComponent } from '../../../components/mention-text/mention-t
 import { ReportContentDialogComponent } from '../../../components/report-content-dialog/report-content-dialog.component';
 import { KickReasonDialogComponent } from '../../../components/kick-reason-dialog/kick-reason-dialog.component';
 import { ContentLikersDialogComponent } from '../../../components/content-likers-dialog/content-likers-dialog.component';
-import { UserAvatarComponent } from '../../../components/user-avatar/user-avatar.component';
+import { AuthorIdentityComponent } from '../../../components/author-identity/author-identity.component';
 import { ContentLiker } from '../../../models/gift.model';
 import { AccessibleDialogDirective } from '../../../directives/accessible-dialog.directive';
 import {
@@ -93,7 +93,7 @@ interface ChatOutboxEntry {
     ReportContentDialogComponent,
     KickReasonDialogComponent,
     ContentLikersDialogComponent,
-    UserAvatarComponent,
+    AuthorIdentityComponent,
     AccessibleDialogDirective,
     LocationHeaderComponent,
     NotificationTargetDirective,

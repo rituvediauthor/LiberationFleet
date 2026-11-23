@@ -13,7 +13,7 @@ import { PageLayoutComponent, ActionBarButton } from '../../../../components/pag
 import { ContentBadgeComponent } from '../../../../components/content-badge/content-badge.component';
 import { AdultContentGateComponent } from '../../../../components/adult-content-gate/adult-content-gate.component';
 import { LibraryImageCarouselComponent } from '../../../../components/library-image-carousel/library-image-carousel.component';
-import { UserAvatarComponent } from '../../../../components/user-avatar/user-avatar.component';
+import { AuthorIdentityComponent } from '../../../../components/author-identity/author-identity.component';
 import { ForumEngagementBarComponent } from '../../../../components/forum-engagement-bar/forum-engagement-bar.component';
 import { ContentLikersDialogComponent } from '../../../../components/content-likers-dialog/content-likers-dialog.component';
 import { FleetService } from '../../../../services/fleet.service';
@@ -48,7 +48,7 @@ import { PullRefreshController } from '../../../../utils/pull-refresh.controller
     AdultContentGateComponent,
     ContentBadgeComponent,
     LibraryImageCarouselComponent,
-    UserAvatarComponent,
+    AuthorIdentityComponent,
     ForumEngagementBarComponent,
     ContentLikersDialogComponent,
     MuteDurationDialogComponent,

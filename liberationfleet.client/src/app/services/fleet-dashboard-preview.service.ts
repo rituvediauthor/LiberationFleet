@@ -341,6 +341,7 @@ export class FleetDashboardPreviewService {
 
     return {
       id: item.id,
+      authorUserId: item.authorUserId,
       authorUsername: item.authorUsername,
       authorAvatarResourceId: item.authorAvatarResourceId,
       lastActivityAt: item.lastActivityAt,
@@ -468,6 +469,7 @@ export class FleetDashboardPreviewService {
       return {
         roomId: room.id,
         messageId: message.id,
+        authorUserId: message.authorUserId,
         authorUsername: message.isAnonymous ? 'Anonymous' : (message.authorUsername || 'Unknown'),
         authorAvatarResourceId: message.isAnonymous ? null : message.authorAvatarResourceId,
         createdAt: message.createdAt,
@@ -493,6 +495,7 @@ export class FleetDashboardPreviewService {
     return {
       roomId: room.id,
       messageId: message.id,
+      authorUserId: message.authorUserId,
       authorUsername: message.isAnonymous ? 'Anonymous' : (message.authorUsername || 'Unknown'),
       authorAvatarResourceId: message.isAnonymous ? null : message.authorAvatarResourceId,
       createdAt: message.createdAt,

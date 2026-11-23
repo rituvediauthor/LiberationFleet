@@ -23,16 +23,17 @@
         [class.media-primary]="!isRemovedByModerator(message) && !message.body && (message.resolvedAttachments?.length ?? 0) > 0">
         <div class="message-header">
           <p class="message-meta">
-            <app-user-avatar
+            <app-author-identity
               [anonymous]="isAnonymousAuthor(message)"
-              [resourceId]="message.authorAvatarResourceId"
+              [userId]="message.authorUserId"
+              [username]="displayAuthor(message)"
+              [avatarResourceId]="message.authorAvatarResourceId"
               [crewId]="crewId || null"
               [fleetId]="fleetId || null"
-              [fallbackInitial]="isAnonymousAuthor(message) ? '' : displayAuthor(message)"
-              size="sm"
-              [alt]="isAnonymousAuthor(message) ? '' : displayAuthor(message) + ' avatar'">
-            </app-user-avatar>
-            <strong>{{ displayAuthor(message) }}</strong>
+              [linkScope]="isFleetScope ? 'fleet' : 'crew'"
+              [nameAsStrong]="true"
+              size="sm">
+            </app-author-identity>
             <span>·</span>
             <span>{{ message.createdAt | date:'short' }}</span>
           </p>
@@ -275,6 +276,7 @@
   [title]="likersDialogTitle"
   [crewId]="crewId || null"
   [fleetId]="fleetId || null"
+  [linkScope]="isFleetScope ? 'fleet' : 'crew'"
   (close)="closeLikersDialog()">
 </app-content-likers-dialog>
 

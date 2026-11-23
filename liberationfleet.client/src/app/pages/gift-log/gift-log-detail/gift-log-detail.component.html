@@ -100,14 +100,15 @@
               [lfHighlightId]="highlightId">
               <div class="comment-header">
                 <p class="comment-meta">
-                  <app-user-avatar
-                    [resourceId]="comment.authorAvatarResourceId"
+                  <app-author-identity
+                    [userId]="comment.authorUserId"
+                    [username]="comment.authorUsername"
+                    [avatarResourceId]="comment.authorAvatarResourceId"
                     [crewId]="crewId || null"
-                    [fallbackInitial]="comment.authorUsername"
-                    size="sm"
-                    [alt]="comment.authorUsername + ' avatar'">
-                  </app-user-avatar>
-                  <strong>{{ comment.authorUsername }}</strong>
+                    linkScope="crew"
+                    [nameAsStrong]="true"
+                    size="sm">
+                  </app-author-identity>
                   <span>·</span>
                   <span>{{ comment.createdAt | date:'short' }}</span>
                 </p>
@@ -146,14 +147,16 @@
                   [lfHighlightId]="highlightId">
                   <div class="comment-header">
                     <p class="comment-meta">
-                      <app-user-avatar
-                        [resourceId]="reply.authorAvatarResourceId"
+                      <app-author-identity
+                        [userId]="reply.authorUserId"
+                        [username]="reply.authorUsername"
+                        [displayName]="formatCommentAuthor(reply, comment.replies)"
+                        [avatarResourceId]="reply.authorAvatarResourceId"
                         [crewId]="crewId || null"
-                        [fallbackInitial]="reply.authorUsername"
-                        size="sm"
-                        [alt]="reply.authorUsername + ' avatar'">
-                      </app-user-avatar>
-                      <strong>{{ formatCommentAuthor(reply, comment.replies) }}</strong>
+                        linkScope="crew"
+                        [nameAsStrong]="true"
+                        size="sm">
+                      </app-author-identity>
                       <span>·</span>
                       <span>{{ reply.createdAt | date:'short' }}</span>
                     </p>
@@ -258,5 +261,6 @@
   [loading]="likersDialogLoading"
   [title]="likersDialogTitle"
   [crewId]="crewId || null"
+  linkScope="crew"
   (close)="closeLikersDialog()">
 </app-content-likers-dialog>

@@ -858,7 +858,7 @@ export class ProposalDetailComponent implements OnInit, OnDestroy {
       })
     };
 
-    if (needsLoad) {
+    if (needsLoad && threadRootId != null) {
       this.loadCommentReplies(threadRootId, newComment);
     }
   }

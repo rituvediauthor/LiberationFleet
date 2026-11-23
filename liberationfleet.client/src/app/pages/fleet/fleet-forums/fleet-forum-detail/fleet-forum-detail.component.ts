@@ -32,7 +32,7 @@ import { isMentionSelectionPending } from '../../../../utils/mention-focus.util'
 import { NotificationTargetDirective } from '../../../../directives/notification-target.directive';
 import { MentionTextComponent } from '../../../../components/mention-text/mention-text.component';
 import { ReportContentDialogComponent } from '../../../../components/report-content-dialog/report-content-dialog.component';
-import { UserAvatarComponent } from '../../../../components/user-avatar/user-avatar.component';
+import { AuthorIdentityComponent } from '../../../../components/author-identity/author-identity.component';
 import { ForumEngagementBarComponent } from '../../../../components/forum-engagement-bar/forum-engagement-bar.component';
 import { ForumCommentLikeComponent } from '../../../../components/forum-comment-like/forum-comment-like.component';
 import { ContentLikersDialogComponent } from '../../../../components/content-likers-dialog/content-likers-dialog.component';
@@ -70,7 +70,7 @@ import { OutsideMenuCloseDirective } from '../../../../directives/outside-menu-c
     MentionAutocompleteDirective,
     MentionTextComponent,
     ReportContentDialogComponent,
-    UserAvatarComponent,
+    AuthorIdentityComponent,
     ForumEngagementBarComponent,
     ForumCommentLikeComponent,
     ContentLikersDialogComponent,
@@ -810,7 +810,7 @@ export class FleetForumDetailComponent implements OnInit, OnDestroy {
       })
     };
 
-    if (needsLoad) {
+    if (needsLoad && threadRootId != null) {
       this.loadCommentReplies(threadRootId, newComment);
     }
   }

@@ -1,0 +1,29 @@
+.author-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.author-identity-link {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.author-identity-link:hover .author,
+.author-identity-link:hover strong,
+.author-identity-link:focus-visible .author,
+.author-identity-link:focus-visible strong {
+  text-decoration: underline;
+}
+
+.author-identity .author,
+.author-identity strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

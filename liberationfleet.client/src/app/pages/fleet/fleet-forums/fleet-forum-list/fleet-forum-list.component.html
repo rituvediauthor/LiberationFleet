@@ -29,14 +29,14 @@
               <app-content-badge [count]="forumBadgeCount(item.id)"></app-content-badge>
             </span>
             <p class="card-meta">
-              <app-user-avatar
-                [resourceId]="item.authorAvatarResourceId"
+              <app-author-identity
+                [userId]="item.authorUserId"
+                [username]="item.authorUsername"
+                [avatarResourceId]="item.authorAvatarResourceId"
                 [fleetId]="fleetId || null"
-                [fallbackInitial]="item.authorUsername"
-                size="sm"
-                [alt]="item.authorUsername + ' avatar'">
-              </app-user-avatar>
-              <span class="author">{{ item.authorUsername }}</span>
+                linkScope="fleet"
+                size="sm">
+              </app-author-identity>
               <span class="dot">·</span>
               <span>{{ formatActivity(item.lastActivityAt) }}</span>
               <span *ngIf="item.isAdultContent" class="adult-badge">18+</span>
@@ -136,14 +136,14 @@
               <app-content-badge [count]="forumBadgeCount(item.id)"></app-content-badge>
             </span>
             <p class="card-meta">
-              <app-user-avatar
-                [resourceId]="item.authorAvatarResourceId"
+              <app-author-identity
+                [userId]="item.authorUserId"
+                [username]="item.authorUsername"
+                [avatarResourceId]="item.authorAvatarResourceId"
                 [fleetId]="fleetId || null"
-                [fallbackInitial]="item.authorUsername"
-                size="sm"
-                [alt]="item.authorUsername + ' avatar'">
-              </app-user-avatar>
-              <span class="author">{{ item.authorUsername }}</span>
+                linkScope="fleet"
+                size="sm">
+              </app-author-identity>
               <span class="dot">·</span>
               <span>{{ formatActivity(item.lastActivityAt) }}</span>
               <span class="muted-badge">Hidden</span>
@@ -237,6 +237,7 @@
   [loading]="likersDialogLoading"
   [title]="likersDialogTitle"
   [fleetId]="fleetId || null"
+  linkScope="fleet"
   (close)="closeLikersDialog()">
 </app-content-likers-dialog>
 

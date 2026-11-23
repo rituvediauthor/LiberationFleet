@@ -44,14 +44,14 @@
       [lfHighlightId]="highlightId">
       <div class="post-header" *ngIf="!editing">
         <p class="meta">
-          <app-user-avatar
-            [resourceId]="p.authorAvatarResourceId"
+          <app-author-identity
+            [userId]="p.authorUserId"
+            [username]="p.authorUsername"
+            [avatarResourceId]="p.authorAvatarResourceId"
             [fleetId]="fleetId || null"
-            [fallbackInitial]="p.authorUsername"
-            size="sm"
-            [alt]="p.authorUsername + ' avatar'">
-          </app-user-avatar>
-          <span class="author">{{ p.authorUsername }}</span>
+            linkScope="fleet"
+            size="sm">
+          </app-author-identity>
           <span>·</span>
           <span>{{ p.createdAt | date:'medium' }}</span>
           <span *ngIf="p.isAdultContent" class="adult-badge">18+</span>
@@ -161,14 +161,15 @@
           [lfHighlightId]="highlightId">
           <div class="comment-header">
             <p class="comment-meta">
-              <app-user-avatar
-                [resourceId]="comment.authorAvatarResourceId"
+              <app-author-identity
+                [userId]="comment.authorUserId"
+                [username]="comment.authorUsername"
+                [avatarResourceId]="comment.authorAvatarResourceId"
                 [fleetId]="fleetId || null"
-                [fallbackInitial]="comment.authorUsername"
-                size="sm"
-                [alt]="comment.authorUsername + ' avatar'">
-              </app-user-avatar>
-              <strong>{{ comment.authorUsername }}</strong>
+                linkScope="fleet"
+                [nameAsStrong]="true"
+                size="sm">
+              </app-author-identity>
               <span>·</span>
               <span>{{ comment.createdAt | date:'short' }}</span>
             </p>
@@ -227,14 +228,16 @@
               [lfHighlightId]="highlightId">
               <div class="comment-header">
                 <p class="comment-meta">
-                  <app-user-avatar
-                    [resourceId]="reply.authorAvatarResourceId"
+                  <app-author-identity
+                    [userId]="reply.authorUserId"
+                    [username]="reply.authorUsername"
+                    [displayName]="formatCommentAuthor(reply, comment.replies)"
+                    [avatarResourceId]="reply.authorAvatarResourceId"
                     [fleetId]="fleetId || null"
-                    [fallbackInitial]="reply.authorUsername"
-                    size="sm"
-                    [alt]="reply.authorUsername + ' avatar'">
-                  </app-user-avatar>
-                  <strong>{{ formatCommentAuthor(reply, comment.replies) }}</strong>
+                    linkScope="fleet"
+                    [nameAsStrong]="true"
+                    size="sm">
+                  </app-author-identity>
                   <span>·</span>
                   <span>{{ reply.createdAt | date:'short' }}</span>
                 </p>
@@ -396,5 +399,6 @@
   [loading]="likersDialogLoading"
   [title]="likersDialogTitle"
   [fleetId]="fleetId || null"
+  linkScope="fleet"
   (close)="closeLikersDialog()">
 </app-content-likers-dialog>

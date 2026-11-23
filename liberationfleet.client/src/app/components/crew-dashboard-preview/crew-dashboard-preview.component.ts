@@ -29,7 +29,7 @@ import {
   LibraryUnitDashboardPreview
 } from '../../models/crew-dashboard-preview.model';
 import { LibraryItemCardComponent } from '../library-item-card/library-item-card.component';
-import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
+import { AuthorIdentityComponent } from '../author-identity/author-identity.component';
 import { formatDashboardTimestamp } from '../../utils/dashboard-preview.util';
 import { preferSwipeCarousel } from '../../utils/haptic.util';
 import { PreviewCarouselController } from '../../utils/preview-carousel.controller';
@@ -38,7 +38,7 @@ import { questValueCardNote } from '../../pages/library/library-tasks/library-ta
 @Component({
   selector: 'app-crew-dashboard-preview',
   standalone: true,
-  imports: [CommonModule, LibraryItemCardComponent, UserAvatarComponent],
+  imports: [CommonModule, LibraryItemCardComponent, AuthorIdentityComponent],
   templateUrl: './crew-dashboard-preview.component.html',
   styleUrl: './crew-dashboard-preview.component.css'
 })
@@ -47,6 +47,7 @@ export class CrewDashboardPreviewComponent implements OnChanges, AfterViewInit, 
   @Input() loading = false;
   @Input() crewId: number | null = null;
   @Input() fleetId: number | null = null;
+  @Input() linkScope: 'crew' | 'fleet' | 'auto' = 'auto';
   @Output() open = new EventEmitter<CrewDashboardPreviewOpenTarget>();
   @Output() needMore = new EventEmitter<CrewDashboardPreviewKind>();
   @ViewChild('viewport') viewport?: ElementRef<HTMLElement>;

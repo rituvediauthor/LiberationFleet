@@ -1,13 +1,13 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AccessibleDialogDirective } from '../../directives/accessible-dialog.directive';
-import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
+import { AuthorIdentityComponent } from '../author-identity/author-identity.component';
 import { ContentLiker } from '../../models/gift.model';
 
 @Component({
   selector: 'app-content-likers-dialog',
   standalone: true,
-  imports: [CommonModule, AccessibleDialogDirective, UserAvatarComponent],
+  imports: [CommonModule, AccessibleDialogDirective, AuthorIdentityComponent],
   template: `
     <div
       class="likers-dialog-backdrop"
@@ -27,15 +27,15 @@ import { ContentLiker } from '../../models/gift.model';
 
         <ul class="likers-list" *ngIf="!loading && items.length > 0">
           <li *ngFor="let item of items">
-            <app-user-avatar
-              [resourceId]="item.avatarResourceId"
+            <app-author-identity
+              [userId]="item.userId"
+              [username]="item.username"
+              [avatarResourceId]="item.avatarResourceId"
               [crewId]="crewId"
               [fleetId]="fleetId"
-              [fallbackInitial]="item.username"
-              size="sm"
-              [alt]="item.username + ' avatar'">
-            </app-user-avatar>
-            <span class="liker-name">{{ item.username }}</span>
+              [linkScope]="linkScope"
+              size="sm">
+            </app-author-identity>
           </li>
         </ul>
 
@@ -94,12 +94,6 @@ import { ContentLiker } from '../../models/gift.model';
       gap: 10px;
     }
 
-    .liker-name {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--lf-color-text-body);
-    }
-
     .actions {
       display: flex;
       justify-content: flex-end;
@@ -127,6 +121,7 @@ export class ContentLikersDialogComponent {
   @Input() title = 'Liked by';
   @Input() crewId: number | null = null;
   @Input() fleetId: number | null = null;
+  @Input() linkScope: 'crew' | 'fleet' | 'auto' = 'auto';
 
   @Output() close = new EventEmitter<void>();
 

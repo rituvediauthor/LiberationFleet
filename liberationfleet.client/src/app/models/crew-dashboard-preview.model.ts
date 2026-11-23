@@ -4,6 +4,7 @@ export type CrewDashboardPreviewKind = 'forum' | 'chat' | 'gift' | 'library';
 
 export interface ForumDashboardPreviewItem {
   id: number;
+  authorUserId: number;
   authorUsername: string;
   authorAvatarResourceId?: string | null;
   lastActivityAt: Date | string;
@@ -21,6 +22,7 @@ export interface ForumDashboardPreview {
 export interface ChatDashboardPreviewItem {
   roomId: number;
   messageId: number;
+  authorUserId: number;
   authorUsername: string;
   authorAvatarResourceId?: string | null;
   createdAt: string;

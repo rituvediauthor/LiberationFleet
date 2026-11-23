@@ -34,15 +34,15 @@
         (keydown)="onKeydown($event)">
         <article *ngIf="forumPreview" class="preview-forum dash-preview">
           <p class="meta">
-            <app-user-avatar
-              [resourceId]="asForum(item).authorAvatarResourceId"
+            <app-author-identity
+              [userId]="asForum(item).authorUserId"
+              [username]="asForum(item).authorUsername"
+              [avatarResourceId]="asForum(item).authorAvatarResourceId"
               [crewId]="crewId"
               [fleetId]="fleetId"
-              [fallbackInitial]="asForum(item).authorUsername"
-              size="sm"
-              [alt]="asForum(item).authorUsername + ' avatar'">
-            </app-user-avatar>
-            <span class="author">{{ asForum(item).authorUsername }}</span>
+              [linkScope]="linkScope"
+              size="sm">
+            </app-author-identity>
             <span class="dot">·</span>
             <span>{{ formatTime(asForum(item).lastActivityAt) }}</span>
           </p>
@@ -53,16 +53,17 @@
 
         <article *ngIf="chatPreview" class="preview-chat dash-preview">
           <p class="meta">
-            <app-user-avatar
+            <app-author-identity
               [anonymous]="!!asChat(item).isAnonymous"
-              [resourceId]="asChat(item).authorAvatarResourceId"
+              [userId]="asChat(item).authorUserId"
+              [username]="asChat(item).authorUsername"
+              [avatarResourceId]="asChat(item).authorAvatarResourceId"
               [crewId]="crewId"
               [fleetId]="fleetId"
-              [fallbackInitial]="asChat(item).isAnonymous ? '' : asChat(item).authorUsername"
-              size="sm"
-              [alt]="asChat(item).isAnonymous ? '' : asChat(item).authorUsername + ' avatar'">
-            </app-user-avatar>
-            <strong>{{ asChat(item).authorUsername }}</strong>
+              [linkScope]="linkScope"
+              [nameAsStrong]="true"
+              size="sm">
+            </app-author-identity>
             <span class="dot">·</span>
             <span>{{ formatTime(asChat(item).createdAt) }}</span>
           </p>
