@@ -122,7 +122,10 @@ export class PreviewCarouselController {
     if (this.lockedAxis !== 'x') {
       return;
     }
-    event.preventDefault();
+    // Only suppress the synthetic click once the finger has clearly started a swipe.
+    if (Math.abs(dx) >= 12) {
+      event.preventDefault();
+    }
     // Rubber-band at ends (right at start / left at end).
     let offset = dx;
     if ((this.activeIndex <= 0 && dx > 0) || (this.activeIndex >= this.itemCount - 1 && dx < 0)) {

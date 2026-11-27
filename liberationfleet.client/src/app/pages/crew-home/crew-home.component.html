@@ -75,6 +75,7 @@
             [preview]="previews.forum"
             [loading]="previewLoading.forum"
             [crewId]="currentMembership.crewId ?? null"
+            linkScope="crew"
             (open)="openPreview($event)"
             (needMore)="onPreviewNeedMore($event)">
             <div class="menu-link menu-link-split crew-name-link">
@@ -109,6 +110,7 @@
             [preview]="previews.chat"
             [loading]="previewLoading.chat"
             [crewId]="currentMembership.crewId ?? null"
+            linkScope="crew"
             (open)="openPreview($event)"
             (needMore)="onPreviewNeedMore($event)">
             <button type="button" class="menu-link" [routerLink]="['/app/crew/chats']">

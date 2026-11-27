@@ -180,7 +180,12 @@ export class CrewDashboardPreviewComponent implements OnChanges, AfterViewInit, 
     return lib?.libraryKind === 'quest' ? lib : null;
   }
 
-  onOpen(item?: CrewDashboardPreviewOpenTarget): void {
+  onOpen(event?: Event, item?: CrewDashboardPreviewOpenTarget): void {
+    const source = event?.target;
+    if (source instanceof Element && source.closest('a.author-identity-link')) {
+      // Author chip handles its own navigation; don't also open the preview target.
+      return;
+    }
     const target = item ?? this.items[this.activeIndex];
     if (target) {
       this.open.emit(target);
@@ -190,7 +195,7 @@ export class CrewDashboardPreviewComponent implements OnChanges, AfterViewInit, 
   onKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      this.onOpen();
+      this.onOpen(event);
     }
   }
 

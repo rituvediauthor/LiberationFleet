@@ -11,6 +11,10 @@
   color: inherit;
   text-decoration: none;
   cursor: pointer;
+  /* Keep the chip from stretching and swallowing sibling card clicks. */
+  flex: 0 1 auto;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .author-identity-link:hover .author,

@@ -385,12 +385,12 @@ export class FleetHomeComponent implements OnInit, AfterViewInit, OnDestroy {
       });
       return;
     }
-    if ('title' in preview && 'lastActivityAt' in preview) {
-      void this.router.navigate(['/app/fleet/forums', preview.id]);
+    if ('timestamp' in preview && 'message' in preview) {
+      void this.router.navigate(['/app/fleet/gift-log', preview.id]);
       return;
     }
-    if ('message' in preview && 'timestamp' in preview) {
-      void this.router.navigate(['/app/fleet/gift-log', preview.id]);
+    if ('lastActivityAt' in preview && 'id' in preview) {
+      void this.router.navigate(['/app/fleet/forums', preview.id]);
     }
   }
 

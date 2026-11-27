@@ -425,12 +425,12 @@ export class CrewHomeComponent implements OnInit, AfterViewInit, OnDestroy {
       });
       return;
     }
-    if ('title' in preview && 'lastActivityAt' in preview) {
-      void this.router.navigate(['/app/crew/forums', preview.id]);
+    if ('timestamp' in preview && 'message' in preview) {
+      void this.router.navigate(['/app/crew/gift-log', preview.id]);
       return;
     }
-    if ('message' in preview && 'timestamp' in preview) {
-      void this.router.navigate(['/app/crew/gift-log', preview.id]);
+    if ('lastActivityAt' in preview && 'id' in preview) {
+      void this.router.navigate(['/app/crew/forums', preview.id]);
     }
   }
 

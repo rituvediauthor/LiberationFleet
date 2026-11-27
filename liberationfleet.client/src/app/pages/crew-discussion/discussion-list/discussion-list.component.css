@@ -70,14 +70,25 @@
   gap: 4px;
 }
 
-.post-open {
-  position: relative;
+.post-open-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 8px 0 14px;
+}
+
+.post-open-main .card-meta {
+  margin: 0 0 6px;
+}
+
+.post-open {
+  position: relative;
+  width: 100%;
   text-align: left;
   border: none;
   background: transparent;
-  padding: 14px 8px 0 14px;
+  padding: 0;
   cursor: pointer;
 }
 
@@ -90,6 +101,7 @@
   padding: 0 14px 0;
 }
 
+.post-open-main:hover,
 .post-open:hover,
 .post-open-body:hover {
   background: var(--lf-color-accent-soft-bg-alt);

@@ -21,10 +21,7 @@
     <div class="post-cards" *ngIf="!loading && visibleItems.length > 0">
       <article class="post-card" *ngFor="let item of visibleItems">
         <div class="post-header">
-          <button type="button" class="post-open" (click)="openPost(item)">
-            <span class="entry-badge-anchor">
-              <app-content-badge [count]="forumBadgeCount(item.id)"></app-content-badge>
-            </span>
+          <div class="post-open-main">
             <p class="card-meta">
               <app-author-identity
                 [userId]="item.authorUserId"
@@ -39,8 +36,13 @@
               <span *ngIf="item.isAdultContent" class="adult-badge">18+</span>
               <span *ngIf="isItemMuted(item.id)" class="muted-badge">Muted</span>
             </p>
-            <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
-          </button>
+            <button type="button" class="post-open" (click)="openPost(item)">
+              <span class="entry-badge-anchor">
+                <app-content-badge [count]="forumBadgeCount(item.id)"></app-content-badge>
+              </span>
+              <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
+            </button>
+          </div>
 
           <div class="post-actions">
             <button
@@ -128,10 +130,7 @@
     <div class="post-cards hidden-list" *ngIf="!loading && showHiddenExpanded && hiddenItemsList.length > 0">
       <article class="post-card hidden-card" *ngFor="let item of hiddenItemsList">
         <div class="post-header">
-          <button type="button" class="post-open" (click)="openPost(item)">
-            <span class="entry-badge-anchor">
-              <app-content-badge [count]="forumBadgeCount(item.id)"></app-content-badge>
-            </span>
+          <div class="post-open-main">
             <p class="card-meta">
               <app-author-identity
                 [userId]="item.authorUserId"
@@ -147,8 +146,13 @@
               <span *ngIf="item.isAdultContent" class="adult-badge">18+</span>
               <span *ngIf="isItemMuted(item.id)" class="muted-badge">Muted</span>
             </p>
-            <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
-          </button>
+            <button type="button" class="post-open" (click)="openPost(item)">
+              <span class="entry-badge-anchor">
+                <app-content-badge [count]="forumBadgeCount(item.id)"></app-content-badge>
+              </span>
+              <h2 class="card-title">{{ item.title || 'Untitled post' }}</h2>
+            </button>
+          </div>
 
           <div class="post-actions">
             <button

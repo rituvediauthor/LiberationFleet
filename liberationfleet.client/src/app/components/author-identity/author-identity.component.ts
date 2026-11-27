@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, inject } from '@angular/core';
-import { Router } from '@angular/router';
+import { Component, Input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { UserAvatarComponent } from '../user-avatar/user-avatar.component';
 
 @Component({
   selector: 'app-author-identity',
   standalone: true,
-  imports: [CommonModule, UserAvatarComponent],
+  imports: [CommonModule, RouterLink, UserAvatarComponent],
   templateUrl: './author-identity.component.html',
   styleUrl: './author-identity.component.css'
 })
@@ -25,12 +25,10 @@ export class AuthorIdentityComponent {
   /** Use <strong> for the name (comments) vs span.author (posts). */
   @Input() nameAsStrong = false;
   /**
-   * Where to open the profile. `auto` prefers crew when crewId is set,
-   * otherwise fleet when fleetId is set.
+   * Where to open the profile. Explicit crew/fleet always wins for routing.
+   * `auto` prefers crew when crewId is set, otherwise fleet when fleetId is set.
    */
   @Input() linkScope: 'crew' | 'fleet' | 'auto' = 'auto';
-
-  private readonly router = inject(Router);
 
   get label(): string {
     const override = this.displayName?.trim();
@@ -41,22 +39,12 @@ export class AuthorIdentityComponent {
   }
 
   get canNavigate(): boolean {
-    if (this.anonymous) {
-      return false;
-    }
-    const id = this.userId ?? 0;
-    if (id <= 0) {
-      return false;
-    }
-    return this.resolvedScope != null;
+    return this.profileLink != null;
   }
 
   get resolvedScope(): 'crew' | 'fleet' | null {
-    if (this.linkScope === 'crew') {
-      return this.crewId != null && this.crewId > 0 ? 'crew' : null;
-    }
-    if (this.linkScope === 'fleet') {
-      return this.fleetId != null && this.fleetId > 0 ? 'fleet' : null;
+    if (this.linkScope === 'crew' || this.linkScope === 'fleet') {
+      return this.linkScope;
     }
     if (this.crewId != null && this.crewId > 0) {
       return 'crew';
@@ -67,19 +55,26 @@ export class AuthorIdentityComponent {
     return null;
   }
 
-  openProfile(event: Event): void {
-    if (!this.canNavigate) {
-      return;
+  /** Absolute router commands for the crewmate detail page, or null when not linkable. */
+  get profileLink(): (string | number)[] | null {
+    if (this.anonymous) {
+      return null;
     }
-    event.preventDefault();
-    // Nested inside list/post open buttons — do not open the parent target.
-    event.stopPropagation();
+    const id = Number(this.userId);
+    if (!Number.isFinite(id) || id <= 0) {
+      return null;
+    }
+    const scope = this.resolvedScope;
+    if (!scope) {
+      return null;
+    }
+    return scope === 'fleet'
+      ? ['/app/fleet/crewmates', id]
+      : ['/app/crew/crewmates', id];
+  }
 
-    const id = this.userId!;
-    const commands =
-      this.resolvedScope === 'fleet'
-        ? ['/app/fleet/crewmates', id]
-        : ['/app/crew/crewmates', id];
-    void this.router.navigate(commands);
+  /** Keep parent card/button handlers from also firing when opening a profile. */
+  onLinkClick(event: Event): void {
+    event.stopPropagation();
   }
 }

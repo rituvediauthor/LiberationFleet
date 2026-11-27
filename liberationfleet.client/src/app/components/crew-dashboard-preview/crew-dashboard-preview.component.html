@@ -30,7 +30,7 @@
         tabindex="0"
         [attr.aria-label]="'Open preview ' + (i + 1)"
         [attr.aria-hidden]="i !== activeIndex"
-        (click)="onOpen(item)"
+        (click)="onOpen($event, item)"
         (keydown)="onKeydown($event)">
         <article *ngIf="forumPreview" class="preview-forum dash-preview">
           <p class="meta">

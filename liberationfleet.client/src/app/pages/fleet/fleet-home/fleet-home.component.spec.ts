@@ -225,6 +225,7 @@ describe('FleetHomeComponent', () => {
   it('opens fleet deep links from preview tiles', () => {
     component.openPreview({
       id: 12,
+      authorUserId: 2,
       authorUsername: 'Maya',
       lastActivityAt: new Date(),
       title: 'Post',
@@ -235,6 +236,7 @@ describe('FleetHomeComponent', () => {
     component.openPreview({
       roomId: 3,
       messageId: 44,
+      authorUserId: 3,
       authorUsername: 'Bo',
       createdAt: new Date().toISOString(),
       body: 'Yo',
@@ -274,6 +276,7 @@ describe('FleetHomeComponent', () => {
       hasMore: true,
       items: [{
         id: 1,
+        authorUserId: 1,
         authorUsername: 'A',
         lastActivityAt: new Date(),
         title: 'One',

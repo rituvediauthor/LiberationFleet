@@ -5,18 +5,21 @@ import { CrewDashboardPreviewComponent } from './crew-dashboard-preview.componen
 import { CrewDashboardPreview } from '../../models/crew-dashboard-preview.model';
 
 @Component({
-  selector: 'app-user-avatar',
+  selector: 'app-author-identity',
   standalone: true,
-  template: ''
+  template: '<span class="stub-author">{{ username }}</span>'
 })
-class StubUserAvatarComponent {
-  @Input() resourceId: string | null | undefined;
+class StubAuthorIdentityComponent {
+  @Input() userId: number | null | undefined;
+  @Input() username = '';
+  @Input() displayName = '';
+  @Input() avatarResourceId: string | null | undefined;
   @Input() crewId: number | null | undefined;
   @Input() fleetId: number | null | undefined;
-  @Input() fallbackInitial = '';
-  @Input() size: string | null = null;
-  @Input() alt = '';
   @Input() anonymous = false;
+  @Input() size: string | null = null;
+  @Input() nameAsStrong = false;
+  @Input() linkScope: string | null = null;
 }
 
 @Component({
@@ -39,7 +42,7 @@ describe('CrewDashboardPreviewComponent', () => {
     })
       .overrideComponent(CrewDashboardPreviewComponent, {
         set: {
-          imports: [CommonModule, StubUserAvatarComponent, StubLibraryItemCardComponent]
+          imports: [CommonModule, StubAuthorIdentityComponent, StubLibraryItemCardComponent]
         }
       })
       .compileComponents();
@@ -71,6 +74,7 @@ describe('CrewDashboardPreviewComponent', () => {
   it('frames the projected header when a preview is present', () => {
     const item = {
       id: 12,
+      authorUserId: 4,
       authorUsername: 'Ritu',
       lastActivityAt: new Date('2026-01-01T12:00:00Z'),
       title: 'Hello',

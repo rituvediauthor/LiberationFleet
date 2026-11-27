@@ -72,6 +72,7 @@
             [preview]="previews.forum"
             [loading]="previewLoading.forum"
             [fleetId]="status?.fleetId ?? null"
+            linkScope="fleet"
             (open)="openPreview($event)"
             (needMore)="onPreviewNeedMore($event)">
             <div class="menu-link menu-link-split fleet-name-link">
@@ -106,6 +107,7 @@
             [preview]="previews.chat"
             [loading]="previewLoading.chat"
             [fleetId]="status?.fleetId ?? null"
+            linkScope="fleet"
             (open)="openPreview($event)"
             (needMore)="onPreviewNeedMore($event)">
             <button type="button" class="menu-link" (click)="goToChats()">

@@ -520,6 +520,7 @@ describe('CrewHomeComponent', () => {
       hasMore: false,
       items: [{
         id: 56,
+        authorUserId: 2,
         authorUsername: 'Ada',
         lastActivityAt: new Date(),
         title: 'Fresh post',
@@ -575,6 +576,7 @@ describe('CrewHomeComponent', () => {
   it('should open a forum preview deep link', () => {
     component.openPreview({
       id: 55,
+      authorUserId: 2,
       authorUsername: 'Ada',
       lastActivityAt: new Date(),
       title: 'Post',
@@ -587,6 +589,7 @@ describe('CrewHomeComponent', () => {
     component.openPreview({
       roomId: 8,
       messageId: 99,
+      authorUserId: 3,
       authorUsername: 'Bo',
       createdAt: new Date().toISOString(),
       body: 'Yo',
